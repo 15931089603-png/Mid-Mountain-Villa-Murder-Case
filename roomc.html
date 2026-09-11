@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>房间搜证 - ROOM C</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #f5e6d3;
+            --bg-panel-light: #e8d5c0;
+            --text-light: #3e2f1f;
+            --text-warm: #5b3e24;
+            --accent: #8b5a2b;
+            --accent-hover: #a06b3a;
+            --border-color: #c4a882;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --z-bg: 1;
+            --z-hotspot: 2;
+            --z-modal: 10;
+            --z-modal-content: 11;
+            --z-evidence-panel: 60;
+            --z-backpack-panel: 70;
+            --z-toast: 100;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; background: var(--bg-dark); color: var(--text-light); font-size: var(--font-size-base, 16px); user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+        #main-stage { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #0a0a12; }
+        #bg-container { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: var(--z-bg); }
+        #bg-container img#bg-image { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+
+        /* 所有热点圆圈统一为50%透明度黑色 */
+        .hotspot { position: absolute; z-index: var(--z-hotspot); cursor: pointer; border: none; background: transparent; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.25s; pointer-events: auto; outline: none; -webkit-tap-highlight-color: transparent; }
+        .hotspot .hotspot-dot { width: 30px; height: 30px; border-radius: 50%; background: rgba(0, 0, 0, 0.5); border: 2px dashed rgba(255, 255, 255, 0.5); transition: all 0.25s; pointer-events: none; box-shadow: 0 0 12px rgba(0, 0, 0, 0.3); }
+        .hotspot:hover .hotspot-dot, .hotspot:active .hotspot-dot { background: rgba(0, 0, 0, 0.7); border-color: #fff; box-shadow: 0 0 20px rgba(255, 255, 255, 0.5); transform: scale(1.25); }
+        .hotspot .hotspot-label { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font-size: 10px; white-space: nowrap; pointer-events: none; letter-spacing: 1px; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7); }
+        /* 文字颜色类 */
+        .hotspot .hotspot-label.label-white { color: #fff; }
+        .hotspot .hotspot-label.label-black { color: #000; text-shadow: 0 1px 4px rgba(255, 255, 255, 0.7); }
+        @media (max-width: 768px) { .hotspot .hotspot-dot { width: 26px; height: 26px; } .hotspot .hotspot-label { font-size: 8px; bottom: -18px; } }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: var(--z-modal); background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; animation: fadeIn 0.25s; pointer-events: auto; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-overlay.closing { animation: fadeOut 0.2s forwards; }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        .modal-box { position: relative; background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 24px 28px; max-width: 90vw; max-height: 85vh; overflow-y: auto; box-shadow: var(--shadow); animation: slideUp 0.3s; pointer-events: auto; z-index: var(--z-modal-content); color: var(--text-light); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .modal-box h3 { font-size: 1.3rem; margin-bottom: 16px; color: var(--accent); text-align: center; letter-spacing: 2px; font-weight: 600; }
+        .modal-box .modal-close-btn { position: absolute; top: 8px; right: 12px; background: none; border: none; color: #8b6e4b; font-size: 22px; cursor: pointer; transition: color 0.2s; line-height: 1; padding: 4px 8px; border-radius: 4px; }
+        .modal-box .modal-close-btn:hover { color: #4a2e1a; background: rgba(139,90,43,0.15); }
+
+        #evidence-panel { position: fixed; right: 16px; bottom: 160px; width: 300px; max-width: 80vw; max-height: 50vh; background: var(--bg-panel); border: 2px solid var(--accent); border-radius: var(--radius); box-shadow: var(--shadow); z-index: var(--z-evidence-panel); display: none; flex-direction: column; overflow: hidden; animation: slideInRight 0.3s; }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+        #evidence-panel .panel-header { padding: 12px 16px; background: var(--bg-panel-light); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-weight: 600; letter-spacing: 1px; color: var(--accent); }
+        #evidence-panel .evidence-list { flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+        #evidence-panel .evidence-item { background: rgba(139,90,43,0.08); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.9rem; line-height: 1.4; border-left: 3px solid var(--accent); word-break: break-all; color: var(--text-warm); }
+        #evidence-panel .evidence-empty { color: #9a8668; text-align: center; padding: 20px 0; font-size: 0.85rem; }
+        #evidence-panel .panel-footer { padding: 10px 16px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; gap: 8px; background: var(--bg-panel-light); }
+        #evidence-counter { font-size: 1rem; font-weight: 700; color: var(--text-warm); letter-spacing: 2px; }
+        #evidence-counter .count-num { color: var(--accent); font-size: 1.3rem; }
+        #btn-return-hall { display: none; background: var(--accent); color: #f5e6d3; border: none; border-radius: var(--radius-sm); padding: 10px 24px; font-size: 0.95rem; font-weight: 700; cursor: pointer; letter-spacing: 2px; transition: all 0.25s; box-shadow: 0 4px 12px rgba(139,90,43,0.35); }
+        #btn-return-hall:hover { background: var(--accent-hover); transform: translateY(-2px); }
+        #detective-code { display: none; font-size: 0.85rem; color: #6b4f2e; letter-spacing: 1px; font-weight: 600; background: rgba(139,90,43,0.1); padding: 6px 12px; border-radius: 20px; border: 1px dashed #8b5a2b; }
+
+        #backpack-panel { position: fixed; right: 16px; bottom: 220px; width: 300px; max-width: 80vw; max-height: 45vh; background: var(--bg-panel); border: 2px solid #6a8daf; border-radius: var(--radius); box-shadow: var(--shadow); z-index: var(--z-backpack-panel); display: none; flex-direction: column; overflow: hidden; }
+        #backpack-panel .panel-header { padding: 12px 16px; background: var(--bg-panel-light); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-weight: 600; color: #6a8daf; }
+        #backpack-panel .backpack-list { flex: 1; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 8px; }
+        #backpack-panel .backpack-item { background: rgba(139,90,43,0.06); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.9rem; cursor: pointer; border-left: 3px solid #6a8daf; display: flex; align-items: center; gap: 8px; color: var(--text-warm); }
+        #backpack-panel .backpack-item.selected { background: rgba(106,141,175,0.25); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.3); }
+        #backpack-panel .backpack-empty { color: #9a8668; text-align: center; padding: 20px 0; }
+
+        #corner-buttons { position: fixed; right: 16px; bottom: 16px; z-index: 55; display: flex; flex-direction: column; gap: 10px; }
+        .corner-btn { width: 60px; height: 60px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); background: rgba(139,90,43,0.85); color: #f5e6d3; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.4); backdrop-filter: blur(6px); }
+        .corner-btn .btn-icon { font-size: 1.4rem; margin-bottom: 2px; }
+        .corner-btn.evidence-btn { border-color: var(--accent); background: rgba(139,90,43,0.9); }
+        .corner-btn.backpack-btn { border-color: #6a8daf; background: rgba(106,141,175,0.85); }
+        @media (max-width: 768px) { .corner-btn { width: 50px; height: 50px; font-size: 0.65rem; } .corner-btn .btn-icon { font-size: 1.2rem; } #corner-buttons { right: 10px; bottom: 10px; gap: 8px; } }
+
+        .toast { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(62,47,31,0.9); color: #f5e6d3; padding: 14px 28px; border-radius: 10px; font-size: 1rem; z-index: var(--z-toast); pointer-events: none; animation: toastInOut 1.8s forwards; text-align: center; max-width: 80vw; box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
+        @keyframes toastInOut { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0.8); } 15% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-50%) scale(0.9); } }
+
+        .wood-texture { background: linear-gradient(90deg, #b5895a 0%, #d4a373 25%, #c08a5e 50%, #a97c50 75%, #b5895a 100%); background-size: 200% 100%; border: 2px solid #7a5a3a; border-radius: 8px; box-shadow: inset 0 0 20px rgba(0,0,0,0.3), 0 6px 18px rgba(0,0,0,0.5); position: relative; }
+        .wood-texture::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: repeating-linear-gradient(0deg, transparent, transparent 6px, rgba(0,0,0,0.08) 8px, rgba(0,0,0,0.04) 10px); border-radius: 6px; pointer-events: none; }
+
+        .circle-puzzle { display: flex; gap: 14px; justify-content: center; align-items: center; padding: 20px 10px; flex-wrap: wrap; }
+        .circle-btn { width: 44px; height: 44px; border-radius: 50%; border: 3px solid #5a3a1a; cursor: pointer; transition: all 0.2s; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        .circle-btn.black { background: #222; border-color: #000; }
+
+        .code-lock { display: flex; gap: 6px; justify-content: center; margin: 16px 0; flex-wrap: wrap; }
+        .code-digit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .code-digit .digit-display { width: 36px; height: 42px; background: #2a1a0a; color: #f5e6d3; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; justify-content: center; border-radius: 4px; border: 2px solid #5a3a1a; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
+        .code-digit .digit-up, .code-digit .digit-down { background: var(--accent); color: #fff; border: none; width: 36px; height: 20px; cursor: pointer; font-size: 0.7rem; border-radius: 3px; display: flex; align-items: center; justify-content: center; }
+
+        /* 手机样式 */
+        .phone-frame { background: #222; border-radius: 28px; padding: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); width: 300px; max-width: 85vw; aspect-ratio: 9 / 18.5; margin: 0 auto; display: flex; flex-direction: column; }
+        .phone-screen { background: #1a1a2e; border-radius: 18px; padding: 16px; flex: 1; overflow-y: auto; color: #fff; position: relative; display: flex; flex-direction: column; }
+        .phone-status-bar { display: flex; justify-content: space-between; font-size: 0.75rem; color: #aaa; margin-bottom: 12px; }
+        .phone-app-grid { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; flex: 1; align-items: flex-start; }
+        .phone-app { display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 70px; gap: 6px; }
+        .phone-app .app-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; background: rgba(255,255,255,0.12); }
+        .phone-app .app-name { font-size: 0.7rem; color: #ddd; }
+        .phone-content { flex: 1; overflow-y: auto; margin-top: 8px; display: none; }
+        .phone-back-btn { background: #8b5a2b; color: #fff; border: none; border-radius: 4px; padding: 4px 12px; font-size: 0.7rem; cursor: pointer; margin-bottom: 8px; }
+
+        .slider-puzzle { display: grid; grid-template-columns: repeat(3, 55px); gap: 4px; justify-content: center; margin: 20px auto; }
+        .slider-cell { width: 55px; height: 55px; background: #8b5a2b; color: #fff; font-size: 1.2rem; font-weight: 700; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
+        .slider-cell.empty { background: #333; cursor: default; box-shadow: none; }
+
+        .recorder-ui { background: #2a1a0a; border-radius: 12px; padding: 16px; text-align: center; }
+        .recorder-progress { width: 100%; height: 6px; background: #444; border-radius: 3px; overflow: hidden; margin: 12px 0; }
+        .recorder-progress-bar { height: 100%; background: #c9a84c; width: 0%; transition: width 0.5s; }
+        .recorder-btn { width: 50px; height: 50px; border-radius: 50%; background: #8b5a2b; color: #fff; border: none; font-size: 1.3rem; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .recorder-text { font-size: 0.8rem; color: #ddd; margin-top: 12px; min-height: 80px; text-align: left; white-space: pre-wrap; line-height: 1.7; }
+
+        .mail-ui { background: #f0f0f0; border-radius: 8px; padding: 12px; color: #333; }
+        .mail-header { display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #8b5a2b; border-bottom: 2px solid #c4a882; padding-bottom: 8px; margin-bottom: 8px; }
+        .mail-list { display: flex; flex-direction: column; gap: 4px; }
+        .mail-item { padding: 8px 10px; background: #fff; border-radius: 4px; cursor: pointer; border-left: 3px solid #c4a882; transition: all 0.2s; }
+        .mail-item:hover { background: #faf0e6; border-left-color: #8b5a2b; }
+        .mail-item .mail-from { font-weight: 700; font-size: 0.75rem; }
+        .mail-item .mail-subject { font-size: 0.7rem; color: #666; }
+        .mail-item .mail-time { font-size: 0.65rem; color: #999; float: right; }
+        .mail-content-view { background: #fff; border-radius: 6px; padding: 14px; }
+        .mail-content-view .mail-sender { font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; }
+        .mail-content-view .mail-date { font-size: 0.7rem; color: #999; margin-bottom: 10px; }
+        .mail-content-view .mail-body { font-size: 0.8rem; line-height: 1.7; margin-bottom: 12px; }
+        .mail-content-view .mail-attachment { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #f0e6d8; border-radius: 6px; cursor: pointer; font-size: 0.75rem; border: 1px solid #c4a882; }
+        .mail-content-view .mail-attachment:hover { background: #e8d5c0; }
+        .btn-back-mail { background: #8b5a2b; color: #fff; border: none; border-radius: 4px; padding: 4px 12px; font-size: 0.7rem; cursor: pointer; }
+
+        .boot-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #1a1a2e; color: #fff; }
+        .boot-screen .boot-icon { font-size: 4rem; margin-bottom: 12px; animation: pulse 1.5s infinite; }
+        .boot-screen .boot-text { font-size: 1rem; letter-spacing: 2px; color: #c9a84c; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+        .fullscreen-image { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .fullscreen-image img { max-width: 90vw; max-height: 90vh; object-fit: contain; }
+
+        /* === 新增：无外壳弹窗（去掉modal-box背景/边框/padding，只保留内部内容） === */
+        .modal-box.flat {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            max-width: none;
+            max-height: none;
+            overflow: visible;
+        }
+        /* 第一个手机：屏幕从下往上深黄到浅黄渐变 */
+        .phone-screen.screen-yellow {
+            background: linear-gradient(to top, #a87818 0%, #e8c558 100%);
+        }
+        /* 抽屉里的手机：屏幕从下往上深绿到浅绿渐变 */
+        .phone-screen.screen-green {
+            background: linear-gradient(to top, #14532d 0%, #69b06e 100%);
+        }
+        /* 相册查看器：黑色背景 + 顶部灰色导航栏 + 图片居中 */
+        .album-viewer {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            margin: -8px -16px;
+        }
+        .album-nav-bar {
+            background: #888;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .album-nav-bar .nav-back {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 2px 8px;
+        }
+        .album-image-area {
+            flex: 1;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            min-height: 120px;
+        }
+        .album-image-area img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        .album-action-bar {
+            background: #000;
+            text-align: center;
+            padding: 6px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-stage">
+        <div id="bg-container">
+            <img id="bg-image" src="picc1.jpg" alt="房间背景" draggable="false" />
+        </div>
+
+        <!-- 热点坐标已更新，文字颜色分类 -->
+        <button class="hotspot" id="hotspot-door" data-x="601" data-y="452" aria-label="地下室活动门板"><span class="hotspot-dot"></span><span class="hotspot-label label-black">地下室活动门板</span></button>
+        <button class="hotspot" id="hotspot-window" data-x="434" data-y="124" aria-label="窗户"><span class="hotspot-dot"></span><span class="hotspot-label label-black">窗户</span></button>
+        <button class="hotspot" id="hotspot-box" data-x="223" data-y="405" aria-label="奇怪箱子"><span class="hotspot-dot"></span><span class="hotspot-label label-white">奇怪箱子</span></button>
+        <button class="hotspot" id="hotspot-backpack" data-x="254" data-y="244" aria-label="黄色背包"><span class="hotspot-dot"></span><span class="hotspot-label label-white">黄色背包</span></button>
+        <button class="hotspot" id="hotspot-phone" data-x="844" data-y="390" aria-label="手机"><span class="hotspot-dot"></span><span class="hotspot-label label-white">手机</span></button>
+        <button class="hotspot" id="hotspot-drawer" data-x="806" data-y="499" aria-label="抽屉"><span class="hotspot-dot"></span><span class="hotspot-label label-white">抽屉</span></button>
+    </div>
+
+    <div id="corner-buttons">
+        <button class="corner-btn evidence-btn" id="btn-toggle-evidence" aria-label="证据栏"><span class="btn-icon">🔍</span><span>证据</span></button>
+        <button class="corner-btn backpack-btn" id="btn-toggle-backpack" aria-label="背包栏"><span class="btn-icon">🎒</span><span>背包</span></button>
+    </div>
+
+    <div id="evidence-panel">
+        <div class="panel-header"><span>📋 证据栏</span><span style="font-size:0.8rem;color:#8b6e4b;">点击外部关闭</span></div>
+        <div class="evidence-list" id="evidence-list"><div class="evidence-empty" id="evidence-empty">暂无证据</div></div>
+        <div class="panel-footer">
+            <div id="evidence-counter"><span class="count-num" id="evidence-count-num">0</span> / 5</div>
+            <div id="detective-code">侦探助手录入码：hzkl7892</div>
+            <button id="btn-return-hall" onclick="goToPage3()">返回大厅</button>
+        </div>
+    </div>
+
+    <div id="backpack-panel">
+        <div class="panel-header"><span>🎒 背包</span><span style="font-size:0.8rem;color:#8b6e4b;">点击物品选中</span></div>
+        <div class="backpack-list" id="backpack-list"><div class="backpack-empty" id="backpack-empty">背包空空如也</div></div>
+    </div>
+
+    <div id="modal-container"></div>
+    <div id="toast-container"></div>
+
+    <script>
+        const state = {
+            evidenceCollected: new Set(),
+            backpackItems: [],
+            selectedBackpackItem: null,
+            boxPattern: ['white', 'white', 'white', 'white', 'white', 'white', 'white'],
+            boxUnlocked: false,
+            boxShowingFront: true,
+            drawerUnlocked: false,
+            drawerShowingPhone: false,
+            drawerDigitValues: ['a', '0', 'a', '0', 'a', '0'],
+            phoneUnlocked: false,
+            sliderTiles: [1, 2, 3, 4, 5, 6, 7, 8, null],
+            mailOpened: false,
+            recordingPlaying: false,
+            recordingProgress: 0,
+            drawerAlbumIndex: 0,
+        };
+
+        const TOTAL_EVIDENCE = 5;
+        const EVIDENCE_BODY_FOUND = 'evidence_body_found';
+        const EVIDENCE_KNIFE = 'evidence_knife';
+        const EVIDENCE_POLICE_BADGE = 'evidence_police_badge';
+        const EVIDENCE_COMPUTER_PHOTO = 'evidence_computer_photo';
+        const EVIDENCE_THREAT_MAIL = 'evidence_threat_mail';
+
+        const ORIGINAL_WIDTH = 1000;
+        const ORIGINAL_HEIGHT = 700;
+
+        const bgImage = document.getElementById('bg-image');
+        const bgContainer = document.getElementById('bg-container');
+        const hotspots = document.querySelectorAll('.hotspot');
+        const modalContainer = document.getElementById('modal-container');
+        const toastContainer = document.getElementById('toast-container');
+        const evidencePanel = document.getElementById('evidence-panel');
+        const backpackPanel = document.getElementById('backpack-panel');
+        const evidenceList = document.getElementById('evidence-list');
+        const evidenceEmpty = document.getElementById('evidence-empty');
+        const evidenceCountNum = document.getElementById('evidence-count-num');
+        const btnReturnHall = document.getElementById('btn-return-hall');
+        const detectiveCode = document.getElementById('detective-code');
+        const backpackList = document.getElementById('backpack-list');
+        const backpackEmpty = document.getElementById('backpack-empty');
+        const btnToggleEvidence = document.getElementById('btn-toggle-evidence');
+        const btnToggleBackpack = document.getElementById('btn-toggle-backpack');
+
+        function showToast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; toastContainer.appendChild(t); setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 1900); }
+        function closeAllModals() { modalContainer.innerHTML = ''; }
+
+        function openModal(html, options = {}) {
+            closeAllModals();
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            if (options.zIndex) overlay.style.zIndex = options.zIndex;
+            const box = document.createElement('div');
+            box.className = 'modal-box';
+            if (options.customClass) box.classList.add(options.customClass);
+            box.innerHTML = html;
+            if (options.closeOnOverlay !== false) overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(overlay); });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            overlay.appendChild(box);
+            modalContainer.appendChild(overlay);
+            return { overlay, box };
+        }
+
+        function closeModal(overlay) { if (!overlay) return; overlay.classList.add('closing'); setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200); }
+
+        function collectEvidence(id, text) { if (state.evidenceCollected.has(id)) return; state.evidenceCollected.add(id); updateEvidencePanel(); showToast('📌 已收录证据：' + text); }
+
+        function updateEvidencePanel() {
+            const count = state.evidenceCollected.size;
+            evidenceCountNum.textContent = count;
+            if (count === 0) { evidenceEmpty.style.display = 'block'; evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove()); btnReturnHall.style.display = 'none'; detectiveCode.style.display = 'none'; return; }
+            evidenceEmpty.style.display = 'none';
+            evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+            const map = {
+                [EVIDENCE_BODY_FOUND]: '尸体发现地状况',
+                [EVIDENCE_KNIFE]: '锋利小刀',
+                [EVIDENCE_POLICE_BADGE]: '冯志远的警察证',
+                [EVIDENCE_COMPUTER_PHOTO]: '今天18:10拍摄的死者电脑文件照片',
+                [EVIDENCE_THREAT_MAIL]: '威胁邮件和可疑录音',
+            };
+            state.evidenceCollected.forEach(eid => { const item = document.createElement('div'); item.className = 'evidence-item'; item.textContent = map[eid] || eid; evidenceList.appendChild(item); });
+            if (count >= TOTAL_EVIDENCE) { btnReturnHall.style.display = 'block'; detectiveCode.style.display = 'block'; } else { btnReturnHall.style.display = 'none'; detectiveCode.style.display = 'none'; }
+        }
+
+        function toggleEvidencePanel(show) { if (show === undefined) show = evidencePanel.style.display !== 'flex'; evidencePanel.style.display = show ? 'flex' : 'none'; }
+        function toggleBackpackPanel(show) { if (show === undefined) show = backpackPanel.style.display !== 'flex'; backpackPanel.style.display = show ? 'flex' : 'none'; if (show) updateBackpackPanel(); }
+        function addToBackpack(id, name, icon) { if (state.backpackItems.some(i => i.id === id)) return; state.backpackItems.push({ id, name, icon: icon || '📦' }); updateBackpackPanel(); showToast('🎒 获得：' + name); }
+        function updateBackpackPanel() { backpackList.querySelectorAll('.backpack-item').forEach(el => el.remove()); if (state.backpackItems.length === 0) { backpackEmpty.style.display = 'block'; return; } backpackEmpty.style.display = 'none'; state.backpackItems.forEach(item => { const el = document.createElement('div'); el.className = 'backpack-item'; if (state.selectedBackpackItem === item.id) el.classList.add('selected'); el.innerHTML = `<span>${item.icon}</span><span>${item.name}</span>`; el.addEventListener('click', (e) => { e.stopPropagation(); selectBackpackItem(item.id); }); backpackList.appendChild(el); }); }
+        function selectBackpackItem(id) { if (state.selectedBackpackItem === id) state.selectedBackpackItem = null; else { const item = state.backpackItems.find(i => i.id === id); if (item) { state.selectedBackpackItem = id; showToast('已选中：' + item.name); } } updateBackpackPanel(); }
+
+        document.addEventListener('click', (e) => {
+            if (evidencePanel.style.display === 'flex' && !evidencePanel.contains(e.target) && e.target !== btnToggleEvidence) toggleEvidencePanel(false);
+            if (backpackPanel.style.display === 'flex' && !backpackPanel.contains(e.target) && e.target !== btnToggleBackpack) toggleBackpackPanel(false);
+        });
+        btnToggleEvidence.addEventListener('click', (e) => { e.stopPropagation(); toggleEvidencePanel(); });
+        btnToggleBackpack.addEventListener('click', (e) => { e.stopPropagation(); toggleBackpackPanel(); });
+
+        function positionHotspots() {
+            const imgRect = bgImage.getBoundingClientRect();
+            const containerRect = bgContainer.getBoundingClientRect();
+            hotspots.forEach(hotspot => {
+                const x = parseFloat(hotspot.dataset.x);
+                const y = parseFloat(hotspot.dataset.y);
+                const pctX = x / ORIGINAL_WIDTH;
+                const pctY = y / ORIGINAL_HEIGHT;
+                const left = imgRect.left - containerRect.left + pctX * imgRect.width;
+                const top = imgRect.top - containerRect.top + pctY * imgRect.height;
+                hotspot.style.left = (left / containerRect.width * 100) + '%';
+                hotspot.style.top = (top / containerRect.height * 100) + '%';
+            });
+        }
+
+        document.getElementById('hotspot-door').addEventListener('click', () => openDoor());
+        document.getElementById('hotspot-window').addEventListener('click', () => openWindow());
+        document.getElementById('hotspot-box').addEventListener('click', () => openBox());
+        document.getElementById('hotspot-backpack').addEventListener('click', () => openYellowBackpack());
+        document.getElementById('hotspot-phone').addEventListener('click', () => openPhone());
+        document.getElementById('hotspot-drawer').addEventListener('click', () => openDrawer());
+
+        function openDoor() {
+            const html = `<h3>🚪 地下室活动门板</h3><div style="text-align:center;margin-bottom:12px;"><img src="picc2.jpg" style="max-width:70vw;max-height:45vh;border-radius:8px;" draggable="false" /></div><p style="font-size:0.85rem;color:#5b3e24;line-height:1.8;text-align:justify;">死者后枕部创口渗血，头下积有一片边界平缓的血泊，无放射状飞溅血点；周边地面干净，未见脚印、拖拽血痕及其他遗留痕迹。</p><button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            collectEvidence(EVIDENCE_BODY_FOUND, '尸体发现地状况');
+        }
+
+        function openWindow() {
+            const html = `<div class="modal-box image-modal-box" style="position:relative;display:flex;align-items:center;justify-content:center;"><img src="picc3.jpg" draggable="false" /><button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button></div>`;
+            const { overlay, box } = openModal(html, { customClass: 'image-modal-box', closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+        }
+
+        function openYellowBackpack() {
+            const html = `<h3>🎒 黄色背包</h3><div style="text-align:center;margin-bottom:12px;"><img src="picc4.jpg" style="max-width:70vw;max-height:45vh;border-radius:8px;" draggable="false" /></div><button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            collectEvidence(EVIDENCE_KNIFE, '锋利小刀');
+        }
+
+        function openBox() {
+            if (state.boxUnlocked) { showBoxContent(); return; }
+            const html = `<div class="wood-texture" style="padding:16px;"><div class="circle-puzzle">${state.boxPattern.map((c, i) => `<button class="circle-btn ${c}" data-box-index="${i}"></button>`).join('')}</div></div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+            box.querySelectorAll('.circle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const idx = parseInt(btn.dataset.boxIndex);
+                    state.boxPattern[idx] = state.boxPattern[idx] === 'white' ? 'black' : 'white';
+                    btn.classList.toggle('black');
+                    if (state.boxPattern.join(',') === 'white,black,black,white,white,black,white') { state.boxUnlocked = true; closeModal(overlay); showBoxContent(); }
+                });
+            });
+        }
+
+        function showBoxContent() {
+            const currentImg = state.boxShowingFront ? 'picc5.jpg' : 'picc6.jpg';
+            const html = `<h3>📦 箱子内容</h3><div style="text-align:center;position:relative;margin-bottom:12px;"><img id="box-img" src="${currentImg}" style="max-width:70vw;max-height:50vh;border-radius:8px;" draggable="false" /><button id="btn-box-switch" style="position:absolute;top:10px;right:10px;background:rgba(139,90,43,0.8);border:none;color:#fff;font-size:20px;width:36px;height:36px;border-radius:50%;cursor:pointer;">↻</button></div><button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            const switchBtn = box.querySelector('#btn-box-switch');
+            const img = box.querySelector('#box-img');
+            switchBtn.addEventListener('click', () => { state.boxShowingFront = !state.boxShowingFront; img.src = state.boxShowingFront ? 'picc5.jpg' : 'picc6.jpg'; });
+            collectEvidence(EVIDENCE_POLICE_BADGE, '冯志远的警察证');
+        }
+
+        function openDrawer() {
+            if (state.drawerUnlocked) { showDrawerPhone(); return; }
+            const html = `<div class="wood-texture" style="padding:20px;"><div style="text-align:center;margin-bottom:16px;"><img src="picc7.jpg" style="max-width:50vw;max-height:30vh;border-radius:4px;border:2px solid rgba(0,0,0,0.2);box-shadow:0 2px 8px rgba(0,0,0,0.3);" draggable="false" /><div style="font-size:0.7rem;color:#5b3e24;margin-top:4px;">贴纸</div></div><div class="code-lock">${[0,1,2,3,4,5].map(i => `<div class="code-digit"><button class="digit-up" data-lock-index="${i}">▲</button><div class="digit-display">${state.drawerDigitValues[i]}</div><button class="digit-down" data-lock-index="${i}">▼</button></div>`).join('')}</div><div style="text-align:center;margin-top:12px;"><button class="btn-confirm-puzzle" id="btn-drawer-confirm" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px 24px;font-size:0.9rem;cursor:pointer;">确认密码</button></div></div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+            const letters = 'abcdefghijklmnopqrstuvwxyz';
+            box.querySelectorAll('.digit-up').forEach(btn => { btn.addEventListener('click', () => { const idx = parseInt(btn.dataset.lockIndex); if (idx % 2 === 0) { const ci = letters.indexOf(state.drawerDigitValues[idx]); state.drawerDigitValues[idx] = letters[(ci + 1) % 26]; } else { state.drawerDigitValues[idx] = String((parseInt(state.drawerDigitValues[idx]) + 1) % 10); } box.querySelectorAll('.digit-display')[idx].textContent = state.drawerDigitValues[idx]; }); });
+            box.querySelectorAll('.digit-down').forEach(btn => { btn.addEventListener('click', () => { const idx = parseInt(btn.dataset.lockIndex); if (idx % 2 === 0) { const ci = letters.indexOf(state.drawerDigitValues[idx]); state.drawerDigitValues[idx] = letters[(ci + 25) % 26]; } else { state.drawerDigitValues[idx] = String((parseInt(state.drawerDigitValues[idx]) + 9) % 10); } box.querySelectorAll('.digit-display')[idx].textContent = state.drawerDigitValues[idx]; }); });
+            box.querySelector('#btn-drawer-confirm').addEventListener('click', () => {
+                if (state.drawerDigitValues.join('') === 'c3b1c6') {
+                    state.drawerUnlocked = true;
+                    bgImage.src = 'picc8.jpg';
+                    positionHotspots();
+                    closeModal(overlay);
+                    showDrawerPhone();
+                } else { showToast('密码错误'); }
+            });
+        }
+
+        function showDrawerPhone() {
+            const bootHtml = `<div class="phone-frame"><div class="phone-screen screen-green"><div class="boot-screen"><div class="boot-icon">🦖</div><div class="boot-text">暴龙手机，你的明智之选</div></div></div></div>`;
+            const { overlay } = openModal(bootHtml, { closeOnOverlay: true, customClass: 'flat' });
+            setTimeout(() => {
+                if (overlay.parentNode) closeModal(overlay);
+                const phoneHtml = `<div class="phone-frame"><div class="phone-screen screen-green"><div class="phone-status-bar"><span>🔋</span><span>19:00</span></div><div id="drawer-desktop" class="phone-app-grid"><div class="phone-app" id="drawer-album-app"><span class="app-icon">📷</span><span class="app-name">相册</span></div></div><div id="drawer-content" class="phone-content"></div></div></div>`;
+                const { overlay: phoneOverlay, box: phoneBox } = openModal(phoneHtml, { closeOnOverlay: true, customClass: 'flat' });
+                const desktop = phoneBox.querySelector('#drawer-desktop');
+                const content = phoneBox.querySelector('#drawer-content');
+                phoneBox.querySelector('#drawer-album-app').addEventListener('click', () => {
+                    desktop.style.display = 'none';
+                    content.style.display = 'block';
+                    content.innerHTML = `<div class="album-viewer"><div class="album-nav-bar"><button class="nav-back" id="drawer-back">←</button><span>今天 18:10</span><span style="width:28px;"></span></div><div class="album-image-area"><img src="picc9.jpg" draggable="false" class="zoomable-img" /></div><div class="album-action-bar"><button id="drawer-switch" style="background:#8b5a2b;color:#fff;border:none;border-radius:4px;padding:6px 16px;cursor:pointer;">切换照片</button></div></div>`;
+                    content.querySelector('#drawer-back').addEventListener('click', () => { content.innerHTML=''; content.style.display='none'; desktop.style.display='flex'; });
+                    content.querySelector('.zoomable-img').addEventListener('click', function() { showFullscreenImage(this.src); });
+                    let albumIndex = 0;
+                    content.querySelector('#drawer-switch').addEventListener('click', () => {
+                        albumIndex = albumIndex === 0 ? 1 : 0;
+                        const img = albumIndex === 0 ? 'picc9.jpg' : 'picc10.jpg';
+                        content.querySelector('.zoomable-img').src = img;
+                    });
+                    collectEvidence(EVIDENCE_COMPUTER_PHOTO, '今天18:10拍摄的死者电脑文件照片');
+                });
+            }, 2000);
+        }
+
+        function openPhone() {
+            if (!state.phoneUnlocked) { showPhoneLock(); return; }
+            showPhoneHome();
+        }
+
+        function shuffleSlider() {
+            const tiles = [1,2,3,4,5,6,7,8,null];
+            let emptyIdx = 8;
+            for (let i = 0; i < 200; i++) {
+                const row = Math.floor(emptyIdx / 3), col = emptyIdx % 3;
+                const moves = [];
+                if (row > 0) moves.push(emptyIdx - 3);
+                if (row < 2) moves.push(emptyIdx + 3);
+                if (col > 0) moves.push(emptyIdx - 1);
+                if (col < 2) moves.push(emptyIdx + 1);
+                const target = moves[Math.floor(Math.random() * moves.length)];
+                tiles[emptyIdx] = tiles[target];
+                tiles[target] = null;
+                emptyIdx = target;
+            }
+            return tiles;
+        }
+
+        function showPhoneLock() {
+            state.sliderTiles = shuffleSlider();
+            const html = `<div class="phone-frame"><div class="phone-screen screen-yellow"><div class="phone-status-bar"><span>🔋</span><span>19:00</span></div><div style="text-align:center;font-size:0.85rem;color:#5b3e24;margin-bottom:12px;font-weight:600;">滑动解锁</div><div class="slider-puzzle">${state.sliderTiles.map((t, i) => `<div class="slider-cell ${t === null ? 'empty' : ''}" data-slider-index="${i}">${t || ''}</div>`).join('')}</div><div style="text-align:center;font-size:0.7rem;color:#5b3e24;">目标：1-8按顺序排列</div></div></div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+            box.querySelectorAll('.slider-cell').forEach(cell => {
+                cell.addEventListener('click', () => {
+                    const idx = parseInt(cell.dataset.sliderIndex);
+                    if (state.sliderTiles[idx] === null) return;
+                    const emptyIdx = state.sliderTiles.indexOf(null);
+                    const row1 = Math.floor(idx / 3), col1 = idx % 3;
+                    const row2 = Math.floor(emptyIdx / 3), col2 = emptyIdx % 3;
+                    if (Math.abs(row1 - row2) + Math.abs(col1 - col2) === 1) {
+                        state.sliderTiles[emptyIdx] = state.sliderTiles[idx];
+                        state.sliderTiles[idx] = null;
+                        const tiles = box.querySelectorAll('.slider-cell');
+                        tiles.forEach((c, i) => { c.textContent = state.sliderTiles[i] || ''; c.classList.toggle('empty', state.sliderTiles[i] === null); });
+                        if (state.sliderTiles.slice(0, 8).every((v, i) => v === i + 1) && state.sliderTiles[8] === null) {
+                            state.phoneUnlocked = true;
+                            closeModal(overlay);
+                            showPhoneHome();
+                        }
+                    }
+                });
+            });
+        }
+
+        function showPhoneHome() {
+            const html = `<div class="phone-frame"><div class="phone-screen screen-yellow"><div class="phone-status-bar"><span>🔋</span><span>19:00</span></div><div id="phone-desktop" class="phone-app-grid"><div class="phone-app" id="phone-album-app"><span class="app-icon">📷</span><span class="app-name">相册</span></div><div class="phone-app" id="phone-mail-app"><span class="app-icon">✉️</span><span class="app-name">邮箱</span></div></div><div id="phone-content" class="phone-content"></div></div></div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+            const desktop = box.querySelector('#phone-desktop');
+            const content = box.querySelector('#phone-content');
+
+            box.querySelector('#phone-album-app').addEventListener('click', () => {
+                desktop.style.display = 'none';
+                content.style.display = 'block';
+                content.innerHTML = `<div class="album-viewer"><div class="album-nav-bar"><button class="nav-back" id="phone-back">←</button><span>今天 18:10</span><span style="width:28px;"></span></div><div class="album-image-area"><img src="picc11.jpg" draggable="false" class="zoomable-img" /></div></div>`;
+                content.querySelector('#phone-back').addEventListener('click', () => { content.innerHTML=''; content.style.display='none'; desktop.style.display='flex'; });
+                content.querySelector('.zoomable-img').addEventListener('click', function() { showFullscreenImage(this.src); });
+            });
+
+            box.querySelector('#phone-mail-app').addEventListener('click', () => {
+                desktop.style.display = 'none';
+                content.style.display = 'block';
+                content.innerHTML = `<div class="album-nav-bar" style="border-radius:8px 8px 0 0;"><button class="nav-back" id="phone-back">←</button><span>邮箱</span><span style="width:28px;"></span></div>`;
+                content.querySelector('#phone-back').addEventListener('click', () => { content.innerHTML=''; content.style.display='none'; desktop.style.display='flex'; });
+                if (state.mailOpened) { showMailInbox(content); return; }
+                state.mailOpened = true;
+                showMailInbox(content);
+                collectEvidence(EVIDENCE_THREAT_MAIL, '威胁邮件和可疑录音');
+            });
+        }
+
+        function showMailInbox(contentEl) {
+            contentEl.innerHTML = `
+                <div class="mail-ui" style="height:100%;border-radius:12px;">
+                    <div class="mail-header"><button class="btn-back-mail" id="btn-mail-home">←</button><span>📥 收件箱</span><button class="btn-back-mail" id="btn-mail-back" style="display:none;">返回</button></div>
+                    <div id="mail-list-container">
+                        <div class="mail-list">
+                            <div class="mail-item" data-mail-id="1">
+                                <span class="mail-time">18:10</span>
+                                <div class="mail-from">匿名发件人</div>
+                                <div class="mail-subject">按我说的做，不然我就曝光这段音频</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="mail-detail-container" style="display:none;"></div>
+                </div>
+            `;
+            const listContainer = contentEl.querySelector('#mail-list-container');
+            const detailContainer = contentEl.querySelector('#mail-detail-container');
+            const homeBtn = contentEl.querySelector('#btn-mail-home');
+            const backBtn = contentEl.querySelector('#btn-mail-back');
+            homeBtn.addEventListener('click', () => {
+                contentEl.innerHTML = '';
+                contentEl.style.display = 'none';
+                const desktop = document.getElementById('phone-desktop');
+                if (desktop) desktop.style.display = 'flex';
+            });
+            const mailItem = contentEl.querySelector('.mail-item');
+            mailItem.addEventListener('click', () => {
+                listContainer.style.display = 'none';
+                detailContainer.style.display = 'block';
+                backBtn.style.display = 'inline-block';
+                homeBtn.style.display = 'none';
+                detailContainer.innerHTML = `
+                    <div class="mail-content-view">
+                        <div class="mail-sender">匿名发件人</div>
+                        <div class="mail-date">今天 18:10</div>
+                        <div class="mail-body">按我说的做，不然我就曝光这段音频</div>
+                        <div class="mail-attachment" id="mail-attachment-detail">📎 录音.mp3</div>
+                        <div id="recorder-container" style="margin-top:12px;"></div>
+                    </div>
+                `;
+                const attachBtn = detailContainer.querySelector('#mail-attachment-detail');
+                attachBtn.addEventListener('click', () => openRecorder(detailContainer.querySelector('#recorder-container')));
+            });
+            backBtn.addEventListener('click', () => {
+                listContainer.style.display = 'block';
+                detailContainer.style.display = 'none';
+                backBtn.style.display = 'none';
+                homeBtn.style.display = 'inline-block';
+            });
+        }
+
+        function openRecorder(containerEl) {
+            state.recordingProgress = 0;
+            const fullText = '舒代华：涨工资？不可能。\n戴纾：我在这里工作了这么多年，你不给我涨工资我就走了。我走了，你上哪找更好的？\n舒代华：你别以为我不知道你干了什么，那天你在花园后面埋……';
+            containerEl.innerHTML = `
+                <div class="recorder-ui">
+                    <button class="recorder-btn" id="recorder-toggle">▶️</button>
+                    <div class="recorder-progress"><div class="recorder-progress-bar" id="recorder-bar"></div></div>
+                    <div class="recorder-text" id="recorder-text"></div>
+                </div>
+            `;
+            const toggleBtn = containerEl.querySelector('#recorder-toggle');
+            const bar = containerEl.querySelector('#recorder-bar');
+            const textEl = containerEl.querySelector('#recorder-text');
+            let interval = null;
+            function startPlayback() {
+                state.recordingPlaying = true;
+                toggleBtn.textContent = '⏸️';
+                interval = setInterval(() => {
+                    state.recordingProgress += 5;
+                    if (state.recordingProgress > 100) state.recordingProgress = 100;
+                    bar.style.width = state.recordingProgress + '%';
+                    const chars = Math.floor(state.recordingProgress / 100 * fullText.length);
+                    textEl.textContent = fullText.substring(0, chars);
+                    if (state.recordingProgress >= 100) { clearInterval(interval); state.recordingPlaying = false; toggleBtn.textContent = '▶️'; }
+                }, 400);
+            }
+            toggleBtn.addEventListener('click', () => {
+                if (state.recordingPlaying) { state.recordingPlaying = false; toggleBtn.textContent = '▶️'; if (interval) clearInterval(interval); }
+                else { startPlayback(); }
+            });
+            startPlayback();
+        }
+
+        function showFullscreenImage(src) {
+            const div = document.createElement('div');
+            div.className = 'fullscreen-image';
+            div.innerHTML = `<img src="${src}" draggable="false" />`;
+            div.addEventListener('click', () => { div.remove(); });
+            document.body.appendChild(div);
+        }
+
+        function goToPage3() { window.location.href = 'page3.html'; }
+
+        function init() {
+            updateEvidencePanel();
+            updateBackpackPanel();
+            positionHotspots();
+            window.addEventListener('resize', positionHotspots);
+            window.addEventListener('orientationchange', () => setTimeout(positionHotspots, 300));
+            bgImage.addEventListener('load', positionHotspots);
+            if (bgImage.complete) positionHotspots();
+        }
+
+        init();
+    </script>
+</body>
+</html>

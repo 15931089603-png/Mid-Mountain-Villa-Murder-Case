@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>房间搜证 - ROOM E</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #f5e6d3;
+            --bg-panel-light: #e8d5c0;
+            --text-light: #3e2f1f;
+            --text-warm: #5b3e24;
+            --accent: #8b5a2b;
+            --accent-hover: #a06b3a;
+            --border-color: #c4a882;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --z-bg: 1;
+            --z-hotspot: 2;
+            --z-modal: 10;
+            --z-modal-content: 11;
+            --z-evidence-panel: 60;
+            --z-backpack-panel: 70;
+            --z-toast: 100;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-size: 16px;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        #main-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #0a0a12;
+        }
+        #bg-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-bg);
+        }
+        #bg-container img#bg-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .hotspot {
+            position: absolute;
+            z-index: var(--z-hotspot);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+            pointer-events: auto;
+            outline: none;
+        }
+        .hotspot .hotspot-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            transition: all 0.25s;
+            pointer-events: none;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+        }
+        .hotspot:hover .hotspot-dot,
+        .hotspot:active .hotspot-dot {
+            background: rgba(0, 0, 0, 0.7);
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            transform: scale(1.25);
+        }
+        .hotspot .hotspot-label {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+            color: #fff;
+        }
+        @media (max-width:768px) {
+            .hotspot .hotspot-dot {
+                width: 26px;
+                height: 26px
+            }
+            .hotspot .hotspot-label {
+                font-size: 8px;
+                bottom: -18px
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-modal);
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.25s;
+            pointer-events: auto;
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0
+            }
+            to {
+                opacity: 1
+            }
+        }
+        .modal-overlay.closing {
+            animation: fadeOut 0.2s forwards;
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1
+            }
+            to {
+                opacity: 0
+            }
+        }
+        .modal-box {
+            position: relative;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.3s;
+            pointer-events: auto;
+            z-index: var(--z-modal-content);
+            color: var(--text-light);
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95)
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+        }
+        .modal-box h3 {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: var(--accent);
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .modal-box .modal-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #8b6e4b;
+            font-size: 22px;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .modal-box .modal-close-btn:hover {
+            color: #4a2e1a;
+            background: rgba(139, 90, 43, 0.15);
+        }
+
+        #evidence-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 160px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 50vh;
+            background: var(--bg-panel);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-evidence-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInRight 0.3s;
+        }
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px)
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+        #evidence-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--accent);
+        }
+        #evidence-panel .evidence-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 60px;
+        }
+        #evidence-panel .evidence-item {
+            background: rgba(139, 90, 43, 0.08);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border-left: 3px solid var(--accent);
+            word-break: break-all;
+            color: var(--text-warm);
+        }
+        #evidence-panel .evidence-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.85rem;
+        }
+        #evidence-panel .panel-footer {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-panel-light);
+        }
+        #evidence-counter {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-warm);
+            letter-spacing: 2px;
+        }
+        #evidence-counter .count-num {
+            color: var(--accent);
+            font-size: 1.3rem;
+        }
+        #btn-return-hall {
+            display: none;
+            background: var(--accent);
+            color: #f5e6d3;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.25s;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.35);
+        }
+        #btn-return-hall:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        #detective-code {
+            display: none;
+            font-size: 0.85rem;
+            color: #6b4f2e;
+            letter-spacing: 1px;
+            font-weight: 600;
+            background: rgba(139, 90, 43, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px dashed #8b5a2b;
+        }
+
+        #backpack-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 220px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 45vh;
+            background: var(--bg-panel);
+            border: 2px solid #6a8daf;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-backpack-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #backpack-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #6a8daf;
+        }
+        #backpack-panel .backpack-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #backpack-panel .backpack-item {
+            background: rgba(139, 90, 43, 0.06);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-left: 3px solid #6a8daf;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-warm);
+        }
+        #backpack-panel .backpack-item.selected {
+            background: rgba(106, 141, 175, 0.25);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+        #backpack-panel .backpack-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        #corner-buttons {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 55;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .corner-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(139, 90, 43, 0.85);
+            color: #f5e6d3;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+        }
+        .corner-btn .btn-icon {
+            font-size: 1.4rem;
+            margin-bottom: 2px;
+        }
+        .corner-btn.evidence-btn {
+            border-color: var(--accent);
+            background: rgba(139, 90, 43, 0.9);
+        }
+        .corner-btn.backpack-btn {
+            border-color: #6a8daf;
+            background: rgba(106, 141, 175, 0.85);
+        }
+        @media (max-width:768px) {
+            .corner-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 0.65rem
+            }
+            .corner-btn .btn-icon {
+                font-size: 1.2rem
+            }
+            #corner-buttons {
+                right: 10px;
+                bottom: 10px;
+                gap: 8px
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(62, 47, 31, 0.9);
+            color: #f5e6d3;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            z-index: var(--z-toast);
+            pointer-events: none;
+            animation: toastInOut 1.8s forwards;
+            text-align: center;
+            max-width: 80vw;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        @keyframes toastInOut {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8)
+            }
+            15% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1)
+            }
+            80% {
+                opacity: 1
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9)
+            }
+        }
+
+        .fullscreen-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .fullscreen-image img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+
+        /* 简报本 */
+        .clipbook {
+            background: #f5efe6;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .clipbook-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px dashed #d4c5a0;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+        }
+        .clipbook-header h3 {
+            color: #3d2b1f;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+        }
+        .clipbook-header span {
+            color: #8b6e4b;
+            font-size: 0.8rem;
+        }
+        .clipbook-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        @media (max-width:600px) {
+            .clipbook-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .clip-card {
+            background: #d9cfc0;
+            border-radius: 4px;
+            padding: 8px;
+            clip-path: polygon(2% 0%, 98% 0%, 100% 3%, 97% 100%, 0% 98%, 1% 2%);
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            transform: rotate(var(--rot, 0deg));
+        }
+        .clip-card:hover {
+            transform: rotate(0deg) scale(1.03);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        .clip-card img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            border-radius: 2px;
+        }
+        .clip-card .tape {
+            position: absolute;
+            width: 60px;
+            height: 18px;
+            background: rgba(235, 215, 170, 0.5);
+            top: -8px;
+            left: 20%;
+            transform: rotate(-5deg);
+            border-radius: 2px;
+        }
+        .clip-card .tape2 {
+            position: absolute;
+            width: 50px;
+            height: 16px;
+            background: rgba(235, 215, 170, 0.4);
+            bottom: -7px;
+            right: 15%;
+            transform: rotate(4deg);
+            border-radius: 2px;
+        }
+        .clip-card .annotation {
+            font-size: 0.7rem;
+            color: #6b4f2e;
+            margin-top: 4px;
+            text-align: center;
+        }
+        .btn-close-book {
+            position: absolute;
+            bottom: -16px;
+            right: 20px;
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* 手机 */
+        .phone-frame {
+            background: #222;
+            border-radius: 28px;
+            padding: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            width: 320px;
+            max-width: 90vw;
+            aspect-ratio: 9 / 18.5;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .phone-screen {
+            background: #1a1a2e;
+            border-radius: 18px;
+            padding: 12px 10px;
+            flex: 1;
+            overflow-y: auto;
+            color: #fff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .phone-status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: #aaa;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .phone-app-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            flex: 1;
+            align-items: flex-start;
+        }
+        .phone-app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 70px;
+            gap: 6px;
+        }
+        .phone-app .app-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        .phone-app .app-name {
+            font-size: 0.7rem;
+            color: #ddd;
+        }
+        .phone-content {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 8px;
+            display: none;
+        }
+        .phone-back-btn {
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+
+        .tab-bar {
+            display: flex;
+            border-top: 1px solid #333;
+            margin-top: 8px;
+            flex-shrink: 0;
+        }
+        .tab-bar div {
+            flex: 1;
+            text-align: center;
+            padding: 8px 0;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+        .tab-bar div.active {
+            color: #c9a84c;
+            border-top: 2px solid #c9a84c;
+        }
+
+        /* 密码输入 */
+        .pwd-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            gap: 16px;
+        }
+        .pwd-title {
+            font-size: 1rem;
+            color: #ccc;
+            letter-spacing: 2px;
+        }
+        .pwd-input {
+            background: #2a2a44;
+            border: 2px solid #5a5a7a;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 1.6rem;
+            text-align: center;
+            color: #fff;
+            letter-spacing: 8px;
+            width: 160px;
+            outline: none;
+            caret-color: #c9a84c;
+        }
+        .pwd-input:focus {
+            border-color: #c9a84c;
+            box-shadow: 0 0 12px rgba(201, 168, 76, 0.3);
+        }
+        .pwd-error {
+            color: #f66;
+            font-size: 0.75rem;
+            min-height: 20px;
+        }
+        .pwd-hint {
+            color: #888;
+            font-size: 0.65rem;
+        }
+
+        /* 赛博电脑 */
+        .cyber-modal {
+            background: #0a0a1a;
+            border: 1px solid #1a3a5c;
+            border-radius: 8px;
+            padding: 0;
+            max-width: 900px;
+            width: 95vw;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 150, 255, 0.3);
+        }
+        .cyber-login {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 300px;
+            color: #4af;
+        }
+        .cyber-login input {
+            background: #0a1a2a;
+            border: 1px solid #2a5a8a;
+            border-radius: 4px;
+            padding: 10px 16px;
+            color: #4af;
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 4px;
+            outline: none;
+        }
+        .cyber-login .cyber-btn {
+            background: #1a3a5c;
+            color: #4af;
+            border: 1px solid #2a5a8a;
+            border-radius: 4px;
+            padding: 8px 24px;
+            cursor: pointer;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+        }
+        .cyber-main {
+            display: flex;
+            height: 70vh;
+        }
+        .cyber-left {
+            width: 140px;
+            background: #0a1220;
+            border-right: 1px solid #1a3a5c;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cyber-left .cyber-menu-item {
+            padding: 10px 8px;
+            background: #111830;
+            border: 1px solid #1a3a5c;
+            border-radius: 4px;
+            color: #5a9adf;
+            cursor: pointer;
+            font-size: 0.75rem;
+            text-align: center;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .cyber-left .cyber-menu-item:hover {
+            background: #1a2a4a;
+            border-color: #3a7abf;
+            color: #8ac;
+        }
+        .cyber-right {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            color: #5a9adf;
+            font-size: 0.8rem;
+        }
+        .cyber-right h4 {
+            color: #4af;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            letter-spacing: 1px;
+        }
+        .cyber-right p {
+            margin-bottom: 6px;
+            line-height: 1.6;
+        }
+        .cyber-right .chat-msg {
+            max-width: 75%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+            line-height: 1.5;
+        }
+        .cyber-right .chat-left {
+            background: #111830;
+            border: 1px solid #2a4a6a;
+            align-self: flex-start;
+        }
+        .cyber-right .chat-right {
+            background: #0a2a4a;
+            border: 1px solid #2a5a8a;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .cyber-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid #1a3a5c;
+            background: #0a1220;
+        }
+        .cyber-header .cyber-title {
+            color: #4af;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+        }
+        .cyber-header .cyber-id {
+            color: #5a9adf;
+            font-size: 0.7rem;
+        }
+
+        /* === 新增：手机弹窗无外壳 + 浅紫屏幕 === */
+        .modal-box.flat {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            max-width: none;
+            max-height: none;
+            overflow: visible;
+        }
+        .phone-screen.screen-purple {
+            background: #e7dcf5 !important;
+            color: #333 !important;
+        }
+        .phone-screen.screen-purple .phone-status-bar { color: #6a5a8a; }
+
+        /* 淘宝风格购物页 */
+        .tb-wrap { display:flex; flex-direction:column; height:100%; min-height:0; color:#333; }
+        .tb-search {
+            flex-shrink:0; display:flex; align-items:center; gap:8px;
+            background:#fff; border-radius:20px; padding:7px 12px; margin:4px 2px 8px;
+            box-shadow:0 1px 3px rgba(0,0,0,0.08);
+        }
+        .tb-search .tb-s-icon { color:#999; font-size:0.85rem; }
+        .tb-search input { flex:1; border:none; outline:none; background:transparent; font-size:0.8rem; color:#666; }
+        .tb-search .tb-s-btn { background:#ff5000; color:#fff; border:none; border-radius:14px; padding:4px 14px; font-size:0.75rem; cursor:pointer; }
+        .tb-goods-grid {
+            flex:1; overflow-y:auto; display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:2px 2px 8px;
+        }
+        .tb-good-card {
+            background:#fff; border-radius:10px; overflow:hidden;
+            box-shadow:0 1px 3px rgba(0,0,0,0.08); display:flex; flex-direction:column;
+        }
+        .tb-good-card .tb-img { width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#eee; }
+        .tb-good-card .tb-name { font-size:0.72rem; color:#333; padding:6px 8px 2px; line-height:1.3; }
+        .tb-good-card .tb-price { font-size:0.85rem; color:#ff5000; font-weight:700; padding:0 8px 8px; }
+        .tb-good-card .tb-price small { font-size:0.6rem; font-weight:400; }
+        /* 底部导航 */
+        .tb-tabbar {
+            flex-shrink:0; display:flex; background:#fff; border-top:1px solid #eee;
+            margin:0 -10px -12px; padding:6px 0 10px;
+        }
+        .tb-tabbar .tb-tab { flex:1; text-align:center; font-size:0.65rem; color:#888; cursor:pointer; }
+        .tb-tabbar .tb-tab .tb-t-ico { font-size:1.1rem; display:block; }
+        .tb-tabbar .tb-tab.active { color:#ff5000; }
+        /* 我的页面 */
+        .tb-mine-head { display:flex; align-items:center; gap:10px; padding:8px 4px; }
+        .tb-avatar {
+            width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#b58fe0,#7a5cc0);
+            color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.3rem; font-weight:700;
+            flex-shrink:0;
+        }
+        .tb-mine-name { color:#fff; font-size:0.95rem; font-weight:700; text-shadow:0 1px 3px rgba(0,0,0,0.25); }
+        .tb-order-bar {
+            background:#fff; border-radius:10px; padding:10px 10px 6px; margin:4px 0 10px;
+            width:100%; box-shadow:0 1px 3px rgba(0,0,0,0.08);
+        }
+        .tb-order-bar .tb-ob-title { font-size:0.78rem; font-weight:700; color:#333; display:flex; justify-content:space-between; }
+        .tb-order-bar .tb-ob-title span:last-child { font-weight:400; font-size:0.65rem; color:#999; cursor:pointer; }
+        .tb-order-states { display:flex; justify-content:space-around; margin-top:8px; }
+        .tb-order-states div { text-align:center; font-size:0.62rem; color:#666; cursor:pointer; }
+        .tb-order-states div .s-ico { font-size:1.1rem; display:block; }
+        .tb-section-title { font-size:0.82rem; font-weight:700; color:#333; margin:4px 2px 6px; }
+        .tb-back-link { font-size:0.68rem; color:#6a5a8a; cursor:pointer; margin:2px 0 6px; }
+    </style>
+</head>
+<body>
+
+    <div id="main-stage">
+        <div id="bg-container">
+            <img id="bg-image" src="pice1.jpg" alt="房间背景" draggable="false" />
+        </div>
+
+        <!-- 笔记本电脑：x=1154（+150）保持不变 -->
+        <button class="hotspot" id="hotspot-laptop" data-x="1154" data-y="434" aria-label="笔记本电脑"><span class="hotspot-dot"></span><span class="hotspot-label">笔记本电脑</span></button>
+        <!-- 手机：原始1058，第一次+50=1108，再+100=1208，再+50=1258 -->
+        <button class="hotspot" id="hotspot-phone" data-x="1258" data-y="467" aria-label="手机"><span class="hotspot-dot"></span><span class="hotspot-label">手机</span></button>
+        <button class="hotspot" id="hotspot-notebook" data-x="120" data-y="627" aria-label="笔记本"><span class="hotspot-dot"></span><span class="hotspot-label">笔记本</span></button>
+        <button class="hotspot" id="hotspot-pillow" data-x="212" data-y="500" aria-label="枕头"><span class="hotspot-dot"></span><span class="hotspot-label">枕头</span></button>
+    </div>
+
+    <div id="corner-buttons">
+        <button class="corner-btn evidence-btn" id="btn-toggle-evidence" aria-label="证据栏"><span class="btn-icon">🔍</span><span>证据</span></button>
+        <button class="corner-btn backpack-btn" id="btn-toggle-backpack" aria-label="背包栏"><span class="btn-icon">🎒</span><span>背包</span></button>
+    </div>
+
+    <div id="evidence-panel">
+        <div class="panel-header"><span>📋 证据栏</span><span style="font-size:0.8rem;color:#8b6e4b;">点击外部关闭</span></div>
+        <div class="evidence-list" id="evidence-list"><div class="evidence-empty" id="evidence-empty">暂无证据</div></div>
+        <div class="panel-footer">
+            <div id="evidence-counter"><span class="count-num" id="evidence-count-num">0</span> / 4</div>
+            <div id="detective-code">侦探助手录入码：lopa1973</div>
+            <button id="btn-return-hall" onclick="goToPage3()">返回大厅</button>
+        </div>
+    </div>
+
+    <div id="backpack-panel">
+        <div class="panel-header"><span>🎒 背包</span><span style="font-size:0.8rem;color:#8b6e4b;">点击物品选中</span></div>
+        <div class="backpack-list" id="backpack-list"><div class="backpack-empty" id="backpack-empty">背包空空如也</div></div>
+    </div>
+
+    <div id="modal-container"></div>
+    <div id="toast-container"></div>
+
+    <script>
+        const state = {
+            evidenceCollected: new Set(),
+            backpackItems: [],
+            selectedBackpackItem: null,
+            phoneUnlocked: false,
+            shopTab: 'home',
+            shopRecordViewed: false,
+            shopOrderViewed: false,
+            cyberLoggedIn: false,
+            cyberTaskViewed: false,
+            cyberPeopleViewed: false,
+            cyberToolsViewed: false,
+            cyberChatViewed: false,
+            clipbookViewed: false,
+        };
+
+        const TOTAL_EVIDENCE = 4;
+        const EVIDENCE_CLIPBOOK = 'evidence_clipbook';
+        const EVIDENCE_PHONE = 'evidence_phone';
+        const EVIDENCE_CYBER_PEOPLE = 'evidence_cyber_people';
+        const EVIDENCE_CYBER_FRAUD = 'evidence_cyber_fraud';
+
+        const ORIGINAL_WIDTH = 1709;
+        const ORIGINAL_HEIGHT = 960;
+
+        const bgImage = document.getElementById('bg-image');
+        const bgContainer = document.getElementById('bg-container');
+        const hotspots = document.querySelectorAll('.hotspot');
+        const modalContainer = document.getElementById('modal-container');
+        const toastContainer = document.getElementById('toast-container');
+        const evidencePanel = document.getElementById('evidence-panel');
+        const backpackPanel = document.getElementById('backpack-panel');
+        const evidenceList = document.getElementById('evidence-list');
+        const evidenceEmpty = document.getElementById('evidence-empty');
+        const evidenceCountNum = document.getElementById('evidence-count-num');
+        const btnReturnHall = document.getElementById('btn-return-hall');
+        const detectiveCode = document.getElementById('detective-code');
+        const backpackList = document.getElementById('backpack-list');
+        const backpackEmpty = document.getElementById('backpack-empty');
+        const btnToggleEvidence = document.getElementById('btn-toggle-evidence');
+        const btnToggleBackpack = document.getElementById('btn-toggle-backpack');
+
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            toastContainer.appendChild(t);
+            setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 1900);
+        }
+
+        function closeAllModals() { modalContainer.innerHTML = ''; }
+
+        function openModal(html, options = {}) {
+            closeAllModals();
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            if (options.zIndex) overlay.style.zIndex = options.zIndex;
+            const box = document.createElement('div');
+            box.className = 'modal-box';
+            if (options.customClass) options.customClass.split(/\s+/).filter(Boolean).forEach(c => box.classList.add(c));
+            box.innerHTML = html;
+            if (options.closeOnOverlay !== false) {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) closeModal(overlay);
+                });
+            }
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            overlay.appendChild(box);
+            modalContainer.appendChild(overlay);
+            return { overlay, box };
+        }
+
+        function closeModal(overlay) {
+            if (!overlay) return;
+            overlay.classList.add('closing');
+            setTimeout(() => {
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }, 200);
+        }
+
+        function collectEvidence(id, text) {
+            if (state.evidenceCollected.has(id)) return;
+            state.evidenceCollected.add(id);
+            updateEvidencePanel();
+            showToast('📌 已收录证据：' + text);
+        }
+
+        function updateEvidencePanel() {
+            const count = state.evidenceCollected.size;
+            evidenceCountNum.textContent = count;
+            if (count === 0) {
+                evidenceEmpty.style.display = 'block';
+                evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+                btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none';
+                return;
+            }
+            evidenceEmpty.style.display = 'none';
+            evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+            const map = {
+                [EVIDENCE_CLIPBOOK]: '有关信息泄露案件的剪报本',
+                [EVIDENCE_PHONE]: '曾向戴纾寄送暴龙手机',
+                [EVIDENCE_CYBER_PEOPLE]: '调查死者身边人员',
+                [EVIDENCE_CYBER_FRAUD]: '申请空壳公司，伪造项目合作书，接近死者'
+            };
+            state.evidenceCollected.forEach(eid => {
+                const item = document.createElement('div');
+                item.className = 'evidence-item';
+                item.textContent = map[eid] || eid;
+                evidenceList.appendChild(item);
+            });
+            if (count >= TOTAL_EVIDENCE) {
+                btnReturnHall.style.display = 'block';
+                detectiveCode.style.display = 'block';
+            } else {
+                btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none';
+            }
+        }
+
+        function toggleEvidencePanel(show) {
+            if (show === undefined) show = evidencePanel.style.display !== 'flex';
+            evidencePanel.style.display = show ? 'flex' : 'none';
+        }
+
+        function toggleBackpackPanel(show) {
+            if (show === undefined) show = backpackPanel.style.display !== 'flex';
+            backpackPanel.style.display = show ? 'flex' : 'none';
+            if (show) updateBackpackPanel();
+        }
+
+        function addToBackpack(id, name, icon) {
+            if (state.backpackItems.some(i => i.id === id)) return;
+            state.backpackItems.push({ id, name, icon: icon || '📦' });
+            updateBackpackPanel();
+            showToast('🎒 获得：' + name);
+        }
+
+        function updateBackpackPanel() {
+            backpackList.querySelectorAll('.backpack-item').forEach(el => el.remove());
+            if (state.backpackItems.length === 0) {
+                backpackEmpty.style.display = 'block';
+                return;
+            }
+            backpackEmpty.style.display = 'none';
+            state.backpackItems.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'backpack-item';
+                if (state.selectedBackpackItem === item.id) el.classList.add('selected');
+                el.innerHTML = `<span>${item.icon}</span><span>${item.name}</span>`;
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectBackpackItem(item.id);
+                });
+                backpackList.appendChild(el);
+            });
+        }
+
+        function selectBackpackItem(id) {
+            if (state.selectedBackpackItem === id) {
+                state.selectedBackpackItem = null;
+            } else {
+                const item = state.backpackItems.find(i => i.id === id);
+                if (item) {
+                    state.selectedBackpackItem = id;
+                    showToast('已选中：' + item.name);
+                }
+            }
+            updateBackpackPanel();
+        }
+
+        document.addEventListener('click', (e) => {
+            if (evidencePanel.style.display === 'flex' && !evidencePanel.contains(e.target) && e.target !== btnToggleEvidence)
+                toggleEvidencePanel(false);
+            if (backpackPanel.style.display === 'flex' && !backpackPanel.contains(e.target) && e.target !== btnToggleBackpack)
+                toggleBackpackPanel(false);
+        });
+        btnToggleEvidence.addEventListener('click', (e) => { e.stopPropagation();
+            toggleEvidencePanel(); });
+        btnToggleBackpack.addEventListener('click', (e) => { e.stopPropagation();
+            toggleBackpackPanel(); });
+
+        function positionHotspots() {
+            const imgRect = bgImage.getBoundingClientRect();
+            const containerRect = bgContainer.getBoundingClientRect();
+            hotspots.forEach(hotspot => {
+                const x = parseFloat(hotspot.dataset.x);
+                const y = parseFloat(hotspot.dataset.y);
+                const pctX = x / ORIGINAL_WIDTH;
+                const pctY = y / ORIGINAL_HEIGHT;
+                const left = imgRect.left - containerRect.left + pctX * imgRect.width;
+                const top = imgRect.top - containerRect.top + pctY * imgRect.height;
+                hotspot.style.left = (left / containerRect.width * 100) + '%';
+                hotspot.style.top = (top / containerRect.height * 100) + '%';
+            });
+        }
+
+        document.getElementById('hotspot-laptop').addEventListener('click', () => openCyberComputer());
+        document.getElementById('hotspot-phone').addEventListener('click', () => openPhone());
+        document.getElementById('hotspot-notebook').addEventListener('click', () => openClipbook());
+        document.getElementById('hotspot-pillow').addEventListener('click', () => openPillow());
+
+        // ========== 枕头 ==========
+        function openPillow() {
+            const html =
+                `<div class="modal-box image-modal-box" style="position:relative;display:flex;align-items:center;justify-content:center;padding:8px;"><img src="pice6.jpg" draggable="false" style="max-width:90vw;max-height:80vh;object-fit:contain;border-radius:6px;" /><button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button></div>`;
+            const { overlay, box } = openModal(html, { customClass: 'image-modal-box', closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+        }
+
+        // ========== 简报本 ==========
+        function openClipbook() {
+            const clips = [
+                { img: 'pice2.jpg', rot: '-2deg' },
+                { img: 'pice3.jpg', rot: '1.5deg' },
+                { img: 'pice4.jpg', rot: '-1deg' },
+                { img: 'pice5.jpg', rot: '2.5deg' },
+            ];
+            const html = `<div class="clipbook">
+                <div class="clipbook-header"><h3>案件剪报</h3><span>2026.09.07</span></div>
+                <div class="clipbook-grid">
+                    ${clips.map((c,i)=>`<div class="clip-card" style="--rot:${c.rot}" data-img="${c.img}">
+                        <div class="tape"></div><div class="tape2"></div>
+                        <img src="${c.img}" draggable="false" />
+                        <div class="annotation">点击放大</div>
+                    </div>`).join('')}
+                </div>
+                <button class="btn-close-book" id="btn-close-book">合上本子</button>
+                <button class="modal-close-btn">✕</button>
+            </div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            const closeBook = box.querySelector('#btn-close-book');
+            if (closeBook) closeBook.addEventListener('click', () => closeModal(overlay));
+            box.querySelectorAll('.clip-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    showFullscreenImage(card.dataset.img);
+                });
+            });
+            if (!state.clipbookViewed) {
+                state.clipbookViewed = true;
+                collectEvidence(EVIDENCE_CLIPBOOK, '有关信息泄露案件的剪报本');
+            }
+        }
+
+        function showFullscreenImage(src) {
+            const div = document.createElement('div');
+            div.className = 'fullscreen-image';
+            div.innerHTML = `<img src="${src}" draggable="false" />`;
+            div.addEventListener('click', () => { div.remove(); });
+            document.body.appendChild(div);
+        }
+
+        // ========== 手机 - 密码解锁 ==========
+        function openPhone() {
+            if (!state.phoneUnlocked) {
+                showPhoneLock();
+                return;
+            }
+            showPhoneHome();
+        }
+
+        function showPhoneLock() {
+            const html = `<div class="phone-frame"><div class="phone-screen screen-purple">
+                <div class="phone-status-bar"><span>🔋</span><span>2026-08-15 19:00</span></div>
+                <div class="pwd-container">
+                    <div class="pwd-title" style="color:#4a3a6a;">🔒 请输入密码</div>
+                    <input type="password" id="pwd-input" class="pwd-input" maxlength="4" inputmode="numeric" autofocus />
+                    <div id="pwd-error" class="pwd-error"></div>
+                    <div class="pwd-hint" style="color:#7a6a9a;">密码为4位数字</div>
+                </div>
+            </div></div>`;
+
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+
+            const input = box.querySelector('#pwd-input');
+            const error = box.querySelector('#pwd-error');
+
+            // 自动聚焦
+            setTimeout(() => input.focus(), 100);
+
+            function attemptUnlock() {
+                const val = input.value.trim();
+                if (val === '5952') {
+                    state.phoneUnlocked = true;
+                    closeModal(overlay);
+                    showPhoneHome();
+                } else {
+                    error.textContent = '❌ 密码错误，请重试';
+                    input.value = '';
+                    input.focus();
+                }
+            }
+
+            input.addEventListener('input', () => {
+                if (input.value.length === 4) {
+                    attemptUnlock();
+                } else {
+                    error.textContent = '';
+                }
+            });
+
+            // 键盘回车支持
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && input.value.length === 4) {
+                    attemptUnlock();
+                }
+            });
+        }
+
+        // ---------- 手机主界面 ----------
+        function showPhoneHome() {
+            const html = `<div class="phone-frame"><div class="phone-screen screen-purple">
+                <div class="phone-status-bar"><span>🔋</span><span>2026-08-15 19:00</span></div>
+                <div class="phone-app-grid" id="phone-desktop">
+                    <div class="phone-app" id="app-tyranno"><span class="app-icon">🦖</span><span class="app-name" style="color:#4a3a6a;">霸王龙购物</span></div>
+                </div>
+                <div id="phone-content" class="phone-content"></div>
+            </div></div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+            const desktop = box.querySelector('#phone-desktop');
+            const content = box.querySelector('#phone-content');
+            box.querySelector('#app-tyranno').addEventListener('click', () => {
+                desktop.style.display = 'none';
+                content.style.display = 'block';
+                showShopApp(content, desktop);
+            });
+        }
+
+        function showShopApp(content, desktop) {
+            state.shopTab = 'home';
+            renderShop(content, desktop);
+        }
+
+        const TAOBAO_PRODUCTS = [
+            { name: '霸王龙旗舰智能手机 5G全网通', price: '6999', img: 'https://picsum.photos/seed/dino-phone/300/300' },
+            { name: '恐龙造型空气炸锅家用新款', price: '329', img: 'https://picsum.photos/seed/dino-fryer/300/300' },
+            { name: '仿真霸王龙毛绒公仔抱枕', price: '89', img: 'https://picsum.photos/seed/dino-plush/300/300' },
+            { name: '恐龙游戏机复古掌机双人', price: '1999', img: 'https://picsum.photos/seed/dino-game/300/300' },
+            { name: '暴龙主题儿童头盔护具套装', price: '259', img: 'https://picsum.photos/seed/dino-helmet/300/300' },
+            { name: '霸王龙投影小夜灯卧室氛围灯', price: '49', img: 'https://picsum.photos/seed/dino-lamp/300/300' },
+            { name: '恐龙化石考古挖掘玩具套装', price: '69', img: 'https://picsum.photos/seed/dino-fossil/300/300' },
+            { name: '霸王龙印花纯棉短袖T恤', price: '79', img: 'https://picsum.photos/seed/dino-tee/300/300' },
+        ];
+        function productCard(p) {
+            return `<div class="tb-good-card"><img class="tb-img" src="${p.img}" draggable="false" /><div class="tb-name">${p.name}</div><div class="tb-price"><small>¥</small>${p.price}</div></div>`;
+        }
+
+        function renderShop(content, desktop) {
+            content.innerHTML = `
+                <div class="tb-wrap">
+                    <div class="tb-search">
+                        <span class="tb-s-icon">🔍</span>
+                        <input type="text" placeholder="搜索霸王龙相关好物" readonly />
+                        <button class="tb-s-btn">搜索</button>
+                    </div>
+                    <div class="tb-back-link" id="shop-back">← 返回桌面</div>
+                    <div id="shop-body" style="flex:1; overflow-y:auto; min-height:0;"></div>
+                    <div class="tb-tabbar">
+                        <div id="tab-home" class="tb-tab ${state.shopTab==='home'?'active':''}"><span class="tb-t-ico">🏠</span>主页</div>
+                        <div id="tab-mine" class="tb-tab ${state.shopTab==='mine'?'active':''}"><span class="tb-t-ico">👤</span>我的</div>
+                    </div>
+                </div>
+            `;
+            content.querySelector('#shop-back').addEventListener('click', () => {
+                content.innerHTML = '';
+                content.style.display = 'none';
+                desktop.style.display = 'flex';
+            });
+            content.querySelector('#tab-home').addEventListener('click', () => {
+                state.shopTab = 'home';
+                renderShop(content, desktop);
+            });
+            content.querySelector('#tab-mine').addEventListener('click', () => {
+                state.shopTab = 'mine';
+                renderShop(content, desktop);
+            });
+            const body = content.querySelector('#shop-body');
+            if (state.shopTab === 'home') {
+                body.innerHTML = `<div class="tb-goods-grid">${TAOBAO_PRODUCTS.map(productCard).join('')}</div>`;
+            } else {
+                body.innerHTML = `
+                    <div class="tb-mine-head">
+                        <div class="tb-avatar">卢</div>
+                        <div class="tb-mine-name">爆炸芦花鸡</div>
+                    </div>
+                    <div class="tb-order-bar">
+                        <div class="tb-ob-title"><span>我的订单</span><span id="tb-all-orders">全部订单 ›</span></div>
+                        <div class="tb-order-states">
+                            <div><span class="s-ico">💰</span>待付款</div>
+                            <div><span class="s-ico">📦</span>待发货</div>
+                            <div><span class="s-ico">🚚</span>待收货</div>
+                            <div><span class="s-ico">⭐</span>待评价</div>
+                            <div><span class="s-ico">📋</span>全部订单</div>
+                        </div>
+                    </div>
+                    <div class="tb-section-title">猜你喜欢</div>
+                    <div class="tb-goods-grid">${TAOBAO_PRODUCTS.slice(0, 4).map(productCard).join('')}</div>
+                `;
+                // 点击"全部订单"（标题右侧或下方文字）→ 原购买记录内容
+                const openRecord = () => {
+                    body.innerHTML =
+                        `<div style="font-size:0.75rem;color:#333;padding:10px;background:#fff;border-radius:8px;margin-top:4px;"><strong>暴龙手机</strong> 购买时间：2026-07-20<br><button id="btn-order-detail" style="margin-top:6px;padding:4px 12px;background:#ff5000;border:none;border-radius:4px;color:#fff;cursor:pointer;">查看订单</button></div>`;
+                    body.querySelector('#btn-order-detail').addEventListener('click', () => {
+                        body.innerHTML =
+                            `<div style="font-size:0.72rem;color:#333;padding:12px;background:#fff;border-radius:8px;line-height:1.7;"><strong>订单详情</strong><br>收件人：戴纾<br>电话：1**********<br>寄件类型：数码产品<br>收件地址：圣女果市大番茄区番薯大道349号<br><button id="btn-back-record" style="margin-top:8px;padding:4px 12px;background:#ff5000;border:none;border-radius:4px;color:#fff;cursor:pointer;">返回</button></div>`;
+                        body.querySelector('#btn-back-record').addEventListener('click', () => {
+                            renderShop(content, desktop);
+                        });
+                        if (!state.shopOrderViewed) {
+                            state.shopOrderViewed = true;
+                            checkPhoneEvidence();
+                        }
+                    });
+                    if (!state.shopRecordViewed) {
+                        state.shopRecordViewed = true;
+                        checkPhoneEvidence();
+                    }
+                };
+                body.querySelector('#tb-all-orders').addEventListener('click', openRecord);
+                body.querySelectorAll('.tb-order-states div').forEach((el, i) => {
+                    if (i === 4) el.addEventListener('click', openRecord);
+                });
+            }
+        }
+
+        function checkPhoneEvidence() {
+            if (state.shopRecordViewed && state.shopOrderViewed) {
+                collectEvidence(EVIDENCE_PHONE, '曾向戴纾寄送暴龙手机');
+            }
+        }
+
+        // ========== 赛博电脑 ==========
+        function openCyberComputer() {
+            if (!state.cyberLoggedIn) { showCyberLogin(); return; }
+            showCyberMain();
+        }
+
+        function showCyberLogin() {
+            const html = `<div class="cyber-modal"><div class="cyber-login">
+                <div style="font-size:1.5rem;color:#4af;letter-spacing:4px;margin-bottom:16px;">🔐 系统登录</div>
+                <input type="password" id="cyber-password" placeholder="请输入密码" maxlength="10" />
+                <div id="cyber-error" style="font-size:0.7rem;color:#f66;min-height:16px;"></div>
+                <button class="cyber-btn" id="cyber-login-btn">登录</button>
+                <button class="modal-close-btn" style="position:absolute;top:8px;right:12px;color:#5a9adf;">✕</button>
+            </div></div>`;
+            const { overlay, box } = openModal(
+                `<div style="background:#0a0a1a;border-radius:8px;">${html}</div>`, { closeOnOverlay: true }
+            );
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            const input = box.querySelector('#cyber-password');
+            const btn = box.querySelector('#cyber-login-btn');
+            const error = box.querySelector('#cyber-error');
+
+            function tryLogin() {
+                if (input.value.trim() === '4529') {
+                    state.cyberLoggedIn = true;
+                    closeModal(overlay);
+                    showCyberMain();
+                } else {
+                    error.textContent = '密码错误';
+                    input.value = '';
+                }
+            }
+            btn.addEventListener('click', tryLogin);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+        }
+
+        function showCyberMain() {
+            const html = `<div class="cyber-modal"><div class="cyber-header"><span class="cyber-title">考拉集团信息窃取计划</span><span class="cyber-id">ID：爆炸芦花鸡</span></div>
+            <div class="cyber-main">
+                <div class="cyber-left">
+                    <div class="cyber-menu-item" data-menu="task">任务计划</div>
+                    <div class="cyber-menu-item" data-menu="people">相关人员</div>
+                    <div class="cyber-menu-item" data-menu="chat">交流平台</div>
+                    <div class="cyber-menu-item" data-menu="tools">任务道具</div>
+                </div>
+                <div class="cyber-right" id="cyber-content">
+                    <div style="text-align:center;color:#5a9adf;margin-top:40px;">选择左侧菜单查看内容</div>
+                </div>
+            </div>
+            <button class="modal-close-btn" style="position:absolute;top:8px;right:12px;color:#5a9adf;">✕</button></div>`;
+            const { overlay, box } = openModal(
+                `<div style="background:#0a0a1a;border-radius:8px;">${html}</div>`, { closeOnOverlay: true }
+            );
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            const content = box.querySelector('#cyber-content');
+
+            box.querySelectorAll('.cyber-menu-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const menu = item.dataset.menu;
+                    if (menu === 'task') {
+                        content.innerHTML =
+                            `<div style="text-align:center;margin-top:60px;color:#f66;">🔒 请指纹解锁</div>`;
+                        if (!state.cyberTaskViewed) state.cyberTaskViewed = true;
+                    } else if (menu === 'people') {
+                        // 修改此处：赵筝 条目增加疑点描述
+                        content.innerHTML = `<h4>考拉集团调查计划</h4>
+<p>1. 姓名：戴纾 年龄：54<br>舒代华家中保洁，易调查<br>可接触，可作为突破点</p>
+<p>2. 姓名：冯颖 年龄：58<br>舒代华家中厨师，易调查<br>曾购买舒代华信息（需深入调查）</p>
+<p>3. 姓名：赵筝 年龄：30<br>舒代华家中管家，赵氏集团遗孤（疑点：拒绝高薪工作，来这里当管家）<br>（需深入）<br>警惕性较高，暂缓接触</p>
+<p>4. 姓名：舒代雄 年龄：41<br>舒代华弟弟，社交圈过于简单，不易接触<br>暂缓接触</p>`;
+                        if (!state.cyberPeopleViewed) {
+                            state.cyberPeopleViewed = true;
+                            collectEvidence(EVIDENCE_CYBER_PEOPLE, '调查死者身边人员');
+                        }
+                    } else if (menu === 'tools') {
+                        content.innerHTML = `<h4>项目合作书</h4>
+<p><strong>大番薯集团有限公司</strong><br>BIG SWEET POTATO GROUP CO., LTD.<br>地址：水果市西兰花区樱桃路88号大番薯大厦18楼<br>电话：0771-8888-XXXX</p>
+<p>计划书编号：DPS-2026-028<br>日期：2026年8月12日</p>
+<p>致：舒代华 先生（考拉集团项目总监）<br>关于："考拉智慧仓储"战略合作计划书</p>
+<p>尊敬的舒先生：<br>首先，感谢您在百忙之中抽空审阅本计划书。大番薯集团有限公司（以下简称"我司"）是一家专注于智能物流与仓储自动化解决方案的创新型企业。我司凭借自主研发的"番薯云"系统，已为多家大型企业提供仓储升级服务，并取得显著成效。</p>
+<p>一、项目背景<br>考拉集团作为国内领先的零售企业，其仓储体系具有巨大的智能化提升空间。我司经过实地调研（注：实际从未调研），认为贵集团位于水果市石榴区香蕉街道的中央仓最具改造价值。我司拟投资建设一套全自动分拣与库存管理系统，帮助考拉集团降低30%以上的运营成本。</p>
+<p>二、合作模式<br>我司拟以"设备+技术"入股方式，与舒先生您所负责的考拉集团仓储部展开合作。具体如下：<br>· 我司提供全套硬件设备、软件平台及五年运维服务；<br>· 考拉集团提供场地、电力及人员配合；<br>· 项目节省的成本，双方按55% : 45% 比例分享（我司占55%，贵集团占45%）。</p>
+<p>三、项目预算<br>总投资约人民币1200万元，其中：<br>· 智能分拣机器人及输送线：650万元<br>· "番薯云"系统开发与部署：320万元<br>· 安装调试及培训：130万元<br>· 首年运维保证金：100万元</p>
+<p>四、预期收益<br>根据我司专业模型测算，项目投用后第一年即可节约人力及损耗成本约400万元，三年内可收回全部投资。</p>
+<p>五、合作期限<br>合作期8年，期满后设备所有权归考拉集团所有。</p>
+<p>六、资质保证<br>我司拥有多项国家专利（注：均为虚构），并已成功实施过水果市芒果区、椰子区等多个大型仓储项目（注：无实际案例）。随函附上营业执照、专利证书及客户好评截图（注：均为PS合成）。</p>
+<p>期待与您面谈细节！<br>此致 敬礼<br>卢华辑<br>大番薯集团有限公司 首席执行官<br>2026年8月12日</p>`;
+                        if (!state.cyberToolsViewed) {
+                            state.cyberToolsViewed = true;
+                            checkCyberFraud();
+                        }
+                    } else if (menu === 'chat') {
+                        content.innerHTML = `<h4>联系人：无敌大番薯</h4>
+<div style="display:flex;flex-direction:column;gap:6px;">
+<div class="chat-msg chat-left"><strong>无敌大番薯 (07月20日 14:30):</strong><br>鸡哥，大番薯集团的营业执照我跑下来了！热乎的！</div>
+<div class="chat-msg chat-right"><strong>爆炸芦花鸡 (14:32):</strong><br>注册资金写了多少？</div>
+<div class="chat-msg chat-left"><strong>无敌大番薯 (14:32):</strong><br>1000万，全认缴，一分没掏。地址挂靠在西兰花区樱桃路88号，虚拟工位一个月500块，前台电话设了呼叫转移。</div>
+<div class="chat-msg chat-right"><strong>爆炸芦花鸡 (14:33):</strong><br>法人写的是我本名卢华辑对吧？</div>
+<div class="chat-msg chat-left"><strong>无敌大番薯 (14:33):</strong><br>对，反正就是个空壳，用完这单下一单换个名头再注册一个。</div>
+<div class="chat-msg chat-right"><strong>爆炸芦花鸡 (14:34):</strong><br>行。目标那边你摸得怎么样了？</div>
+<div class="chat-msg chat-left"><strong>无敌大番薯 (14:35):</strong><br>考拉集团的董事长舒代华，我盯了两周了。他手机不离手，电脑里全是公司资料。而且这人爱面子，喜欢别人捧他。</div>
+<div class="chat-msg chat-right"><strong>爆炸芦花鸡 (14:36):</strong><br>好。那你就以我（大番薯CEO）的身份去约他，就说是智慧仓储合作，他那个人好大喜功，一听能降本增效肯定感兴趣。</div>
+<div class="chat-msg chat-left"><strong>无敌大番薯 (14:38):</strong><br>那专利证书和案例照片呢？</div>
+<div class="chat-msg chat-right"><strong>爆炸芦花鸡 (14:38):</strong><br>淘宝P好了，发你。还有一份AI生成的博士硕士简历，你一并打印装订好，戏要做全套。</div>
+<div class="chat-msg chat-left"><strong>无敌大番薯 (14:49):</strong><br>好嘞！等拿到舒代华的数据，咱们又是一笔进账！</div>
+</div>`;
+                        if (!state.cyberChatViewed) {
+                            state.cyberChatViewed = true;
+                            checkCyberFraud();
+                        }
+                    }
+                });
+            });
+        }
+
+        function checkCyberFraud() {
+            if (state.cyberToolsViewed && state.cyberChatViewed) {
+                collectEvidence(EVIDENCE_CYBER_FRAUD, '申请空壳公司，伪造项目合作书，接近死者');
+            }
+        }
+
+        function goToPage3() { window.location.href = 'page3.html'; }
+
+        function init() {
+            updateEvidencePanel();
+            updateBackpackPanel();
+            positionHotspots();
+            window.addEventListener('resize', positionHotspots);
+            window.addEventListener('orientationchange', () => setTimeout(positionHotspots, 300));
+            bgImage.addEventListener('load', positionHotspots);
+            if (bgImage.complete) positionHotspots();
+        }
+        init();
+    </script>
+</body>
+</html>

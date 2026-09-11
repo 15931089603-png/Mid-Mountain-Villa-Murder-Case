@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>书房搜证 - STUDY</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #f5e6d3;
+            --bg-panel-light: #e8d5c0;
+            --text-light: #3e2f1f;
+            --text-warm: #5b3e24;
+            --accent: #8b5a2b;
+            --accent-hover: #a06b3a;
+            --border-color: #c4a882;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --z-bg: 1;
+            --z-hotspot: 2;
+            --z-modal: 10;
+            --z-modal-content: 11;
+            --z-evidence-panel: 60;
+            --z-backpack-panel: 70;
+            --z-toast: 100;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-size: 16px;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        #main-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #0a0a12;
+        }
+        #bg-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-bg);
+        }
+        #bg-container img#bg-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .hotspot {
+            position: absolute;
+            z-index: var(--z-hotspot);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+            pointer-events: auto;
+            outline: none;
+        }
+        .hotspot .hotspot-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            transition: all 0.25s;
+            pointer-events: none;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+        }
+        .hotspot:hover .hotspot-dot,
+        .hotspot:active .hotspot-dot {
+            background: rgba(0, 0, 0, 0.7);
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            transform: scale(1.25);
+        }
+        .hotspot .hotspot-label {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+            color: #fff;
+        }
+        /* 地毯一角标签调整到上方 */
+        .hotspot.label-top .hotspot-label {
+            bottom: auto;
+            top: -22px;
+        }
+        @media (max-width:768px) {
+            .hotspot .hotspot-dot {
+                width: 26px;
+                height: 26px
+            }
+            .hotspot .hotspot-label {
+                font-size: 8px;
+                bottom: -18px;
+            }
+            .hotspot.label-top .hotspot-label {
+                top: -18px;
+                bottom: auto;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-modal);
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.25s;
+            pointer-events: auto;
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0
+            }
+            to {
+                opacity: 1
+            }
+        }
+        .modal-overlay.closing {
+            animation: fadeOut 0.2s forwards;
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1
+            }
+            to {
+                opacity: 0
+            }
+        }
+        .modal-box {
+            position: relative;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.3s;
+            pointer-events: auto;
+            z-index: var(--z-modal-content);
+            color: var(--text-light);
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95)
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1)
+            }
+        }
+        .modal-box h3 {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: var(--accent);
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .modal-box .modal-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #8b6e4b;
+            font-size: 22px;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .modal-box .modal-close-btn:hover {
+            color: #4a2e1a;
+            background: rgba(139, 90, 43, 0.15);
+        }
+
+        /* 木质纹理弹窗 */
+        .wood-modal {
+            background: linear-gradient(135deg, #d4a373 0%, #c08a5e 25%, #b5895a 50%, #a97c50 75%, #d4a373 100%);
+            border: 3px solid #7a5a3a;
+            border-radius: 10px;
+            box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4), 0 8px 30px rgba(0, 0, 0, 0.6);
+        }
+        .wood-modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 8px, rgba(0, 0, 0, 0.08) 10px, rgba(0, 0, 0, 0.04) 12px);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .wood-modal h3 {
+            color: #3e2f1f;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.3);
+        }
+        .wood-modal .modal-close-btn {
+            color: #5a3a1a;
+        }
+
+        #evidence-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 160px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 50vh;
+            background: var(--bg-panel);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-evidence-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInRight 0.3s;
+        }
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px)
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+        #evidence-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--accent);
+        }
+        #evidence-panel .evidence-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 60px;
+        }
+        #evidence-panel .evidence-item {
+            background: rgba(139, 90, 43, 0.08);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border-left: 3px solid var(--accent);
+            word-break: break-all;
+            color: var(--text-warm);
+        }
+        #evidence-panel .evidence-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.85rem;
+        }
+        #evidence-panel .panel-footer {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-panel-light);
+        }
+        #evidence-counter {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-warm);
+            letter-spacing: 2px;
+        }
+        #evidence-counter .count-num {
+            color: var(--accent);
+            font-size: 1.3rem;
+        }
+        #btn-return-hall {
+            display: none;
+            background: var(--accent);
+            color: #f5e6d3;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.25s;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.35);
+        }
+        #btn-return-hall:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        #detective-code {
+            display: none;
+            font-size: 0.85rem;
+            color: #6b4f2e;
+            letter-spacing: 1px;
+            font-weight: 600;
+            background: rgba(139, 90, 43, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px dashed #8b5a2b;
+        }
+
+        #backpack-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 220px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 45vh;
+            background: var(--bg-panel);
+            border: 2px solid #6a8daf;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-backpack-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #backpack-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #6a8daf;
+        }
+        #backpack-panel .backpack-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #backpack-panel .backpack-item {
+            background: rgba(139, 90, 43, 0.06);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-left: 3px solid #6a8daf;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-warm);
+        }
+        #backpack-panel .backpack-item.selected {
+            background: rgba(106, 141, 175, 0.25);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+        #backpack-panel .backpack-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        #corner-buttons {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 55;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .corner-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(139, 90, 43, 0.85);
+            color: #f5e6d3;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+        }
+        .corner-btn .btn-icon {
+            font-size: 1.4rem;
+            margin-bottom: 2px;
+        }
+        .corner-btn.evidence-btn {
+            border-color: var(--accent);
+            background: rgba(139, 90, 43, 0.9);
+        }
+        .corner-btn.backpack-btn {
+            border-color: #6a8daf;
+            background: rgba(106, 141, 175, 0.85);
+        }
+        @media (max-width:768px) {
+            .corner-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 0.65rem
+            }
+            .corner-btn .btn-icon {
+                font-size: 1.2rem
+            }
+            #corner-buttons {
+                right: 10px;
+                bottom: 10px;
+                gap: 8px
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(62, 47, 31, 0.9);
+            color: #f5e6d3;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            z-index: var(--z-toast);
+            pointer-events: none;
+            animation: toastInOut 1.8s forwards;
+            text-align: center;
+            max-width: 80vw;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        @keyframes toastInOut {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8)
+            }
+            15% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1)
+            }
+            80% {
+                opacity: 1
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9)
+            }
+        }
+
+        /* 记忆配对游戏 */
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            max-width: 280px;
+            margin: 10px auto;
+        }
+        .memory-cell {
+            aspect-ratio: 1;
+            background: #3a3a5c;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .memory-cell.flipped {
+            background: #5a5a7c;
+        }
+        .memory-cell.matched {
+            background: #4a6b3a;
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-stage">
+        <div id="bg-container">
+            <img id="bg-image" src="study1.jpg" alt="书房背景" draggable="false" />
+        </div>
+
+        <!-- 初始热点，地毯一角添加 label-top 类使文字显示在按钮上方 -->
+        <button class="hotspot" id="hotspot-shelf" data-x="217" data-y="347" aria-label="书架"><span class="hotspot-dot"></span><span class="hotspot-label">书架</span></button>
+        <button class="hotspot" id="hotspot-chair" data-x="397" data-y="446" aria-label="椅背顶部"><span class="hotspot-dot"></span><span class="hotspot-label">椅背顶部</span></button>
+        <button class="hotspot label-top" id="hotspot-carpet" data-x="310" data-y="914" aria-label="地毯一角"><span class="hotspot-dot"></span><span class="hotspot-label">地毯一角</span></button>
+
+        <!-- 后续动态热点，初始隐藏 -->
+        <button class="hotspot" id="hotspot-door" data-x="310" data-y="914" aria-label="活动门板" style="display:none;"><span class="hotspot-dot"></span><span class="hotspot-label">活动门板</span></button>
+        <button class="hotspot" id="hotspot-enter" data-x="600" data-y="500" aria-label="进入" style="display:none;"><span class="hotspot-dot"></span><span class="hotspot-label">进入</span></button>
+        <button class="hotspot" id="hotspot-back-study6" data-x="150" data-y="500" aria-label="返回" style="display:none;"><span class="hotspot-dot"></span><span class="hotspot-label">返回</span></button>
+        <button class="hotspot" id="hotspot-back-study7" data-x="704" data-y="398" aria-label="返回" style="display:none;"><span class="hotspot-dot"></span><span class="hotspot-label">返回</span></button>
+    </div>
+
+    <div id="corner-buttons">
+        <button class="corner-btn evidence-btn" id="btn-toggle-evidence" aria-label="证据栏"><span class="btn-icon">🔍</span><span>证据</span></button>
+        <button class="corner-btn backpack-btn" id="btn-toggle-backpack" aria-label="背包栏"><span class="btn-icon">🎒</span><span>背包</span></button>
+    </div>
+
+    <div id="evidence-panel">
+        <div class="panel-header"><span>📋 证据栏</span><span style="font-size:0.8rem;color:#8b6e4b;">点击外部关闭</span></div>
+        <div class="evidence-list" id="evidence-list"><div class="evidence-empty" id="evidence-empty">暂无证据</div></div>
+        <div class="panel-footer">
+            <div id="evidence-counter"><span class="count-num" id="evidence-count-num">0</span> / 2</div>
+            <div id="detective-code">侦探助手录入码：artx4722</div>
+            <button id="btn-return-hall" onclick="goToPage3()">返回大厅</button>
+        </div>
+    </div>
+
+    <div id="backpack-panel">
+        <div class="panel-header"><span>🎒 背包</span><span style="font-size:0.8rem;color:#8b6e4b;">点击物品选中</span></div>
+        <div class="backpack-list" id="backpack-list"><div class="backpack-empty" id="backpack-empty">背包空空如也</div></div>
+    </div>
+
+    <div id="modal-container"></div>
+    <div id="toast-container"></div>
+
+    <script>
+        const state = {
+            evidenceCollected: new Set(),
+            backpackItems: [],
+            selectedBackpackItem: null,
+            scene: 'main',
+            memoryCards: [],
+            firstCard: null,
+            secondCard: null,
+            lockBusy: false,
+        };
+
+        const TOTAL_EVIDENCE = 2;
+        const EVIDENCE_BLOOD = 'evidence_blood';
+        const EVIDENCE_TUNNEL = 'evidence_tunnel';
+
+        const ORIGINAL_WIDTH = 1200;
+        const ORIGINAL_HEIGHT = 1000;
+
+        const bgImage = document.getElementById('bg-image');
+        const bgContainer = document.getElementById('bg-container');
+        const hotspots = document.querySelectorAll('.hotspot');
+        const modalContainer = document.getElementById('modal-container');
+        const toastContainer = document.getElementById('toast-container');
+        const evidencePanel = document.getElementById('evidence-panel');
+        const backpackPanel = document.getElementById('backpack-panel');
+        const evidenceList = document.getElementById('evidence-list');
+        const evidenceEmpty = document.getElementById('evidence-empty');
+        const evidenceCountNum = document.getElementById('evidence-count-num');
+        const btnReturnHall = document.getElementById('btn-return-hall');
+        const detectiveCode = document.getElementById('detective-code');
+        const backpackList = document.getElementById('backpack-list');
+        const backpackEmpty = document.getElementById('backpack-empty');
+        const btnToggleEvidence = document.getElementById('btn-toggle-evidence');
+        const btnToggleBackpack = document.getElementById('btn-toggle-backpack');
+
+        const hotspotShelf = document.getElementById('hotspot-shelf');
+        const hotspotChair = document.getElementById('hotspot-chair');
+        const hotspotCarpet = document.getElementById('hotspot-carpet');
+        const hotspotDoor = document.getElementById('hotspot-door');
+        const hotspotEnter = document.getElementById('hotspot-enter');
+        const hotspotBack6 = document.getElementById('hotspot-back-study6');
+        const hotspotBack7 = document.getElementById('hotspot-back-study7');
+
+        function showToast(msg) { const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            toastContainer.appendChild(t);
+            setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 1900); }
+
+        function closeAllModals() { modalContainer.innerHTML = ''; }
+
+        function openModal(html, options = {}) { closeAllModals(); const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay'; if (options.zIndex) overlay.style.zIndex = options.zIndex; const box =
+                document.createElement('div');
+            box.className = 'modal-box'; if (options.customClass) box.classList.add(options.customClass);
+            box.innerHTML = html; if (options.closeOnOverlay !== false) overlay.addEventListener('click', (e) => { if (e
+                    .target === overlay) closeModal(overlay); }); const closeBtn = box.querySelector('.modal-close-btn'); if (
+                closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            overlay.appendChild(box);
+            modalContainer.appendChild(overlay); return { overlay, box }; }
+
+        function closeModal(overlay) { if (!overlay) return;
+            overlay.classList.add('closing');
+            setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200); }
+
+        function collectEvidence(id, text) { if (state.evidenceCollected.has(id)) return;
+            state.evidenceCollected.add(id);
+            updateEvidencePanel();
+            showToast('📌 已收录证据：' + text); }
+
+        function updateEvidencePanel() {
+            const count = state.evidenceCollected.size;
+            evidenceCountNum.textContent = count;
+            if (count === 0) { evidenceEmpty.style.display = 'block';
+                evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+                btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none'; return; }
+            evidenceEmpty.style.display = 'none';
+            evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+            const map = { [EVIDENCE_BLOOD]: '椅背顶部有被擦除的血迹', [EVIDENCE_TUNNEL]: '书房有通往储藏间的地道' };
+            state.evidenceCollected.forEach(eid => { const item = document.createElement('div');
+                item.className = 'evidence-item';
+                item.textContent = map[eid] || eid;
+                evidenceList.appendChild(item); });
+            if (count >= TOTAL_EVIDENCE) { btnReturnHall.style.display = 'block';
+                detectiveCode.style.display = 'block'; } else { btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none'; }
+        }
+
+        function toggleEvidencePanel(show) { if (show === undefined) show = evidencePanel.style.display !== 'flex';
+            evidencePanel.style.display = show ? 'flex' : 'none'; }
+
+        function toggleBackpackPanel(show) { if (show === undefined) show = backpackPanel.style.display !== 'flex';
+            backpackPanel.style.display = show ? 'flex' : 'none'; if (show) updateBackpackPanel(); }
+
+        function addToBackpack(id, name, icon) { if (state.backpackItems.some(i => i.id === id)) return;
+            state.backpackItems.push({ id, name, icon: icon || '📦' });
+            updateBackpackPanel();
+            showToast('🎒 获得：' + name); }
+
+        function updateBackpackPanel() { backpackList.querySelectorAll('.backpack-item').forEach(el => el.remove()); if (
+                state.backpackItems.length === 0) { backpackEmpty.style.display = 'block'; return; }
+            backpackEmpty.style.display = 'none';
+            state.backpackItems.forEach(item => { const el = document.createElement('div');
+                el.className = 'backpack-item'; if (state.selectedBackpackItem === item.id) el.classList.add('selected');
+                el.innerHTML = `<span>${item.icon}</span><span>${item.name}</span>`;
+                el.addEventListener('click', (e) => { e.stopPropagation();
+                    selectBackpackItem(item.id); });
+                backpackList.appendChild(el); }); }
+
+        function selectBackpackItem(id) { if (state.selectedBackpackItem === id) state.selectedBackpackItem = null; else { const
+                item = state.backpackItems.find(i => i.id === id); if (item) { state.selectedBackpackItem = id;
+                    showToast('已选中：' + item.name); } }
+            updateBackpackPanel(); }
+
+        function getBackpackItem(id) { return state.backpackItems.find(i => i.id === id); }
+
+        document.addEventListener('click', (e) => { if (evidencePanel.style.display === 'flex' && !evidencePanel.contains(e
+                    .target) && e.target !== btnToggleEvidence) toggleEvidencePanel(false); if (backpackPanel.style
+                    .display === 'flex' && !backpackPanel.contains(e.target) && e.target !== btnToggleBackpack)
+                toggleBackpackPanel(false); });
+        btnToggleEvidence.addEventListener('click', (e) => { e.stopPropagation();
+            toggleEvidencePanel(); });
+        btnToggleBackpack.addEventListener('click', (e) => { e.stopPropagation();
+            toggleBackpackPanel(); });
+
+        function positionHotspots() {
+            const imgRect = bgImage.getBoundingClientRect();
+            const containerRect = bgContainer.getBoundingClientRect();
+            hotspots.forEach(hotspot => {
+                if (hotspot.style.display === 'none') return;
+                const x = parseFloat(hotspot.dataset.x);
+                const y = parseFloat(hotspot.dataset.y);
+                const pctX = x / ORIGINAL_WIDTH;
+                const pctY = y / ORIGINAL_HEIGHT;
+                const left = imgRect.left - containerRect.left + pctX * imgRect.width;
+                const top = imgRect.top - containerRect.top + pctY * imgRect.height;
+                hotspot.style.left = (left / containerRect.width * 100) + '%';
+                hotspot.style.top = (top / containerRect.height * 100) + '%';
+            });
+        }
+
+        function setScene(scene) {
+            state.scene = scene;
+            [hotspotShelf, hotspotChair, hotspotCarpet, hotspotDoor, hotspotEnter, hotspotBack6, hotspotBack7].forEach(h => h
+                .style.display = 'none');
+            if (scene === 'main') {
+                bgImage.src = 'study1.jpg';
+                hotspotShelf.style.display = 'flex';
+                hotspotChair.style.display = 'flex';
+                hotspotCarpet.style.display = 'flex';
+            } else if (scene === 'study5') {
+                bgImage.src = 'study5.jpg';
+                hotspotShelf.style.display = 'flex';
+                hotspotChair.style.display = 'flex';
+                hotspotDoor.style.display = 'flex';
+            } else if (scene === 'study6') {
+                bgImage.src = 'study6.jpg';
+                hotspotEnter.style.display = 'flex';
+                hotspotBack6.style.display = 'flex';
+            } else if (scene === 'study7') {
+                bgImage.src = 'study7.jpg';
+                hotspotBack7.style.display = 'flex';
+                collectEvidence(EVIDENCE_TUNNEL, '书房有通往储藏间的地道');
+            }
+            positionHotspots();
+        }
+
+        // 书架
+        hotspotShelf.addEventListener('click', () => {
+            const html =
+                `<h3>📚 书架</h3><div style="text-align:center;margin-bottom:12px;"><img src="study2.jpg" style="max-width:70vw;max-height:45vh;border-radius:8px;" draggable="false" /></div><p style="font-size:0.85rem;color:#5b3e24;line-height:1.8;">鲁米诺试剂可检测肉眼看不见的血迹，反应后发出蓝绿色荧光。至于这里为什么会有，当然是好心的作者偷偷留给大家的。</p><button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn'); if (closeBtn) closeBtn.addEventListener('click', () =>
+                closeModal(overlay));
+            addToBackpack('luminol', '鲁米诺试剂', '🧪');
+        });
+
+        // 椅背顶部
+        hotspotChair.addEventListener('click', () => {
+            const html =
+                `<h3>🪑 椅背顶部</h3><div style="text-align:center;margin-bottom:12px;"><img id="chair-img" src="study3.jpg" style="max-width:70vw;max-height:45vh;border-radius:8px;cursor:pointer;" draggable="false" /></div><button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn'); if (closeBtn) closeBtn.addEventListener('click', () =>
+                closeModal(overlay));
+            const img = box.querySelector('#chair-img');
+            img.addEventListener('click', () => {
+                if (state.selectedBackpackItem === 'luminol') {
+                    img.src = 'study4.jpg';
+                    state.selectedBackpackItem = null;
+                    updateBackpackPanel();
+                    collectEvidence(EVIDENCE_BLOOD, '椅背顶部有被擦除的血迹');
+                } else {
+                    showToast('需要鲁米诺试剂');
+                }
+            });
+        });
+
+        // 地毯一角 -> 切换场景
+        hotspotCarpet.addEventListener('click', () => {
+            setScene('study5');
+        });
+
+        // 活动门板 -> 记忆配对游戏（木质弹窗）
+        hotspotDoor.addEventListener('click', () => {
+            openMemoryPuzzle();
+        });
+
+        function openMemoryPuzzle() {
+            const emojis = ['🦖', '🍕', '🎮', '📱', '💎', '🔥', '🌙', '⭐'];
+            const pairs = [...emojis, ...emojis];
+            for (let i = pairs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+                [pairs[i], pairs[j]] = [pairs[j], pairs[i]]; }
+            state.memoryCards = pairs;
+            state.firstCard = null;
+            state.secondCard = null;
+            state.lockBusy = false;
+            const html =
+                `<h3>🚪 活动门板</h3><p style="text-align:center;font-size:0.8rem;color:#5a3a1a;">记忆配对：点击方块找到相同的 emoji</p>
+            <div class="memory-grid">
+                ${state.memoryCards.map((emoji,i)=>`<div class="memory-cell" data-index="${i}"></div>`).join('')}
+            </div>
+            <button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'wood-modal' });
+            const closeBtn = box.querySelector('.modal-close-btn'); if (closeBtn) closeBtn.addEventListener('click', () =>
+                closeModal(overlay));
+            box.querySelectorAll('.memory-cell').forEach(cell => {
+                cell.addEventListener('click', () => {
+                    if (state.lockBusy) return;
+                    const idx = parseInt(cell.dataset.index);
+                    if (cell.classList.contains('matched') || cell.classList.contains('flipped')) return;
+                    if (state.firstCard === null) {
+                        cell.textContent = state.memoryCards[idx];
+                        cell.classList.add('flipped');
+                        state.firstCard = { idx, cell };
+                    } else if (state.secondCard === null && idx !== state.firstCard.idx) {
+                        cell.textContent = state.memoryCards[idx];
+                        cell.classList.add('flipped');
+                        state.secondCard = { idx, cell };
+                        if (state.memoryCards[idx] === state.memoryCards[state.firstCard.idx]) {
+                            state.firstCard.cell.classList.add('matched');
+                            state.secondCard.cell.classList.add('matched');
+                            state.firstCard = null;
+                            state.secondCard = null;
+                            const allMatched = box.querySelectorAll('.memory-cell.matched').length === 16;
+                            if (allMatched) { closeModal(overlay);
+                                setScene('study6'); }
+                        } else {
+                            state.lockBusy = true;
+                            setTimeout(() => {
+                                state.firstCard.cell.textContent = '';
+                                state.firstCard.cell.classList.remove('flipped');
+                                state.secondCard.cell.textContent = '';
+                                state.secondCard.cell.classList.remove('flipped');
+                                state.firstCard = null;
+                                state.secondCard = null;
+                                state.lockBusy = false;
+                            }, 600);
+                        }
+                    }
+                });
+            });
+        }
+
+        // study6 返回/进入
+        hotspotBack6.addEventListener('click', () => setScene('study5'));
+        hotspotEnter.addEventListener('click', () => setScene('study7'));
+        hotspotBack7.addEventListener('click', () => setScene('study6'));
+
+        function goToPage3() { window.location.href = 'page3.html'; }
+
+        function init() {
+            updateEvidencePanel();
+            updateBackpackPanel();
+            setScene('main');
+            positionHotspots();
+            window.addEventListener('resize', positionHotspots);
+            window.addEventListener('orientationchange', () => setTimeout(positionHotspots, 300));
+            bgImage.addEventListener('load', positionHotspots);
+            if (bgImage.complete) positionHotspots();
+        }
+        init();
+    </script>
+</body>
+</html>

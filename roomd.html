@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>房间搜证 - ROOM D</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #f5e6d3;
+            --bg-panel-light: #e8d5c0;
+            --text-light: #3e2f1f;
+            --text-warm: #5b3e24;
+            --accent: #8b5a2b;
+            --accent-hover: #a06b3a;
+            --border-color: #c4a882;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --z-bg: 1;
+            --z-hotspot: 2;
+            --z-modal: 10;
+            --z-modal-content: 11;
+            --z-evidence-panel: 60;
+            --z-backpack-panel: 70;
+            --z-toast: 100;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-size: 16px;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        #main-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #0a0a12;
+        }
+        #bg-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-bg);
+        }
+        #bg-container img#bg-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .hotspot {
+            position: absolute;
+            z-index: var(--z-hotspot);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+            pointer-events: auto;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hotspot .hotspot-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            transition: all 0.25s;
+            pointer-events: none;
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.3);
+        }
+        .hotspot:hover .hotspot-dot,
+        .hotspot:active .hotspot-dot {
+            background: rgba(0, 0, 0, 0.7);
+            border-color: #fff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            transform: scale(1.25);
+        }
+        .hotspot .hotspot-label {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+            color: #fff;
+        }
+        @media (max-width:768px) {
+            .hotspot .hotspot-dot {
+                width: 26px;
+                height: 26px;
+            }
+            .hotspot .hotspot-label {
+                font-size: 8px;
+                bottom: -18px;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-modal);
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.25s;
+            pointer-events: auto;
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        .modal-overlay.closing {
+            animation: fadeOut 0.2s forwards;
+        }
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        .modal-box {
+            position: relative;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.3s;
+            pointer-events: auto;
+            z-index: var(--z-modal-content);
+            color: var(--text-light);
+        }
+        .modal-box.modal-black {
+            background: #111;
+            border-color: #333;
+            color: #e0e0e0;
+        }
+        .modal-box.modal-black h3 {
+            color: #c9a84c;
+        }
+        .modal-box.modal-black .modal-close-btn {
+            color: #aaa;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .modal-box h3 {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: var(--accent);
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .modal-box .modal-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #8b6e4b;
+            font-size: 22px;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .modal-box .modal-close-btn:hover {
+            color: #4a2e1a;
+            background: rgba(139, 90, 43, 0.15);
+        }
+
+        /* 拼图弹窗放大 */
+        .puzzle-modal {
+            max-width: 94vw !important;
+            width: 94vw !important;
+            max-height: 92vh !important;
+            padding: 20px 24px !important;
+        }
+        .puzzle-modal .puzzle-grid {
+            max-width: 100% !important;
+            width: 100% !important;
+            gap: 5px !important;
+            margin: 0 auto !important;
+        }
+        .puzzle-modal .puzzle-piece {
+            aspect-ratio: 1;
+            min-height: 54px;
+            max-height: 140px;
+            border: 2px solid #c4a882;
+            border-radius: 4px;
+            background-color: #1a1a2e;
+            cursor: pointer;
+            transition: transform 0.25s ease;
+        }
+        .puzzle-modal .puzzle-piece:hover {
+            border-color: #8b5a2b;
+        }
+        @media (max-width:640px) {
+            .puzzle-modal .puzzle-piece {
+                min-height: 40px;
+                max-height: 90px;
+            }
+            .puzzle-modal {
+                padding: 12px 14px !important;
+            }
+        }
+
+        #evidence-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 160px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 50vh;
+            background: var(--bg-panel);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-evidence-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInRight 0.3s;
+        }
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        #evidence-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--accent);
+        }
+        #evidence-panel .evidence-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 60px;
+        }
+        #evidence-panel .evidence-item {
+            background: rgba(139, 90, 43, 0.08);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border-left: 3px solid var(--accent);
+            word-break: break-all;
+            color: var(--text-warm);
+        }
+        #evidence-panel .evidence-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.85rem;
+        }
+        #evidence-panel .panel-footer {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-panel-light);
+        }
+        #evidence-counter {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-warm);
+            letter-spacing: 2px;
+        }
+        #evidence-counter .count-num {
+            color: var(--accent);
+            font-size: 1.3rem;
+        }
+        #btn-return-hall {
+            display: none;
+            background: var(--accent);
+            color: #f5e6d3;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.25s;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.35);
+        }
+        #btn-return-hall:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+        #detective-code {
+            display: none;
+            font-size: 0.85rem;
+            color: #6b4f2e;
+            letter-spacing: 1px;
+            font-weight: 600;
+            background: rgba(139, 90, 43, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px dashed #8b5a2b;
+        }
+
+        #backpack-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 220px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 45vh;
+            background: var(--bg-panel);
+            border: 2px solid #6a8daf;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-backpack-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #backpack-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: #6a8daf;
+        }
+        #backpack-panel .backpack-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #backpack-panel .backpack-item {
+            background: rgba(139, 90, 43, 0.06);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-left: 3px solid #6a8daf;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-warm);
+        }
+        #backpack-panel .backpack-item.selected {
+            background: rgba(106, 141, 175, 0.25);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+        #backpack-panel .backpack-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        #corner-buttons {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 55;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .corner-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(139, 90, 43, 0.85);
+            color: #f5e6d3;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+        }
+        .corner-btn .btn-icon {
+            font-size: 1.4rem;
+            margin-bottom: 2px;
+        }
+        .corner-btn.evidence-btn {
+            border-color: var(--accent);
+            background: rgba(139, 90, 43, 0.9);
+        }
+        .corner-btn.backpack-btn {
+            border-color: #6a8daf;
+            background: rgba(106, 141, 175, 0.85);
+        }
+        @media (max-width:768px) {
+            .corner-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 0.65rem;
+            }
+            .corner-btn .btn-icon {
+                font-size: 1.2rem;
+            }
+            #corner-buttons {
+                right: 10px;
+                bottom: 10px;
+                gap: 8px;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(62, 47, 31, 0.9);
+            color: #f5e6d3;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            z-index: var(--z-toast);
+            pointer-events: none;
+            animation: toastInOut 1.8s forwards;
+            text-align: center;
+            max-width: 80vw;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        @keyframes toastInOut {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            15% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            80% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+        }
+
+        .phone-frame {
+            background: #222;
+            border-radius: 28px;
+            padding: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            width: 300px;
+            max-width: 85vw;
+            aspect-ratio: 9/18.5;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .phone-screen {
+            background: #1a1a2e;
+            border-radius: 18px;
+            padding: 16px;
+            flex: 1;
+            overflow-y: auto;
+            color: #fff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .phone-status-bar {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+        .phone-app-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            justify-content: center;
+            flex: 1;
+            align-items: flex-start;
+        }
+        .phone-app {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            width: 70px;
+            gap: 6px;
+        }
+        .phone-app .app-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        .phone-app .app-name {
+            font-size: 0.7rem;
+            color: #ddd;
+        }
+        .phone-content {
+            flex: 1;
+            overflow-y: auto;
+            margin-top: 8px;
+            display: none;
+        }
+        .phone-back-btn {
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 12px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .password-dots {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .password-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #555;
+            transition: all 0.2s;
+        }
+        .password-dot.filled {
+            background: #c9a84c;
+        }
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 240px;
+            margin: 0 auto;
+        }
+        .keypad-btn {
+            padding: 16px;
+            font-size: 1.2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .keypad-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+        .keypad-grid .key {
+            padding: 16px;
+            font-size: 1.2rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid #8b5a2b;
+            border-radius: 8px;
+            color: #fff;
+            cursor: pointer;
+        }
+        .keypad-grid .key:active {
+            background: rgba(139, 90, 43, 0.4);
+        }
+
+        .puzzle-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2px;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .puzzle-piece {
+            aspect-ratio: 1;
+            background-size: 400% 300%;
+            cursor: pointer;
+            transition: transform 0.3s;
+            border: 1px solid #ccc;
+        }
+
+        /* 笔记本统一大小 */
+        .notebook {
+            display: flex;
+            flex-direction: column;
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .notebook-pages {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            align-items: stretch;
+        }
+        .notebook-page {
+            background: #f5e6d3;
+            border-radius: 6px;
+            padding: 20px;
+            flex: 1;
+            min-height: 320px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.3);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .notebook-page h4 {
+            color: #8b5a2b;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+        .notebook-page p {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #3e2f1f;
+            flex: 1;
+        }
+        .notebook-nav {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+        .notebook-nav button {
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .notebook-nav button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .fullscreen-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .fullscreen-image img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+
+        .fingerprint-btn {
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        /* 照片按钮右移100px (原来left: calc(50% - 110px)，现改为calc(50% - 10px) ) */
+        #btn-photo-center {
+            left: calc(50% - 10px) !important;
+        }
+
+        /* 剪报粘贴装饰 */
+        .clip-tape {
+            position: absolute;
+            width: 28px;
+            height: 12px;
+            background: rgba(200, 180, 160, 0.55);
+            border-radius: 2px;
+            transform: rotate(-8deg);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+        }
+        .clip-tape.t1 {
+            top: -4px;
+            left: 12%;
+        }
+        .clip-tape.t2 {
+            bottom: -4px;
+            right: 15%;
+            transform: rotate(6deg);
+        }
+        .clip-tape.t3 {
+            top: 30%;
+            left: -6px;
+            transform: rotate(15deg);
+            width: 10px;
+            height: 22px;
+        }
+        .clip-tape.t4 {
+            bottom: 25%;
+            right: -6px;
+            transform: rotate(-10deg);
+            width: 10px;
+            height: 22px;
+        }
+
+        /* 霞鹜文楷（手写体，OFL开源） */
+        @import url('https://fonts.loli.net/css2?family=Long+Cang&family=Ma+Shan+Zheng&display=swap');
+        .handwriting-font {
+            font-family: 'LXGW WenKai', 'Long Cang', 'Ma Shan Zheng', 'STKaiti', 'KaiTi', cursive !important;
+        }
+
+        /* 无外壳弹窗：去掉modal-box背景/边框/padding，只留内容 */
+        .modal-box.flat {
+            background: transparent !important;
+            border: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            max-width: none;
+            max-height: none;
+            overflow: visible;
+        }
+        /* 手机屏幕：从下往上深黄到浅黄渐变 */
+        .phone-screen.screen-yellow {
+            background: linear-gradient(to top, #a87818 0%, #e8c558 100%) !important;
+        }
+        /* 相册查看器：黑底 + 灰色顶栏 + 图片居中 */
+        .album-viewer {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            margin: -8px -16px;
+        }
+        .album-nav-bar {
+            background: #888;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .album-nav-bar .nav-back {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 2px 8px;
+        }
+        .album-image-area {
+            flex: 1;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            min-height: 140px;
+        }
+        .album-image-area img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .album-action-bar {
+            background: #000;
+            text-align: center;
+            padding: 6px;
+            flex-shrink: 0;
+        }
+        /* 文件管理列表：左图标右文件名同一行 */
+        .file-list-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .file-list-row .row-icon { font-size: 1.6rem; }
+        .file-list-row .row-name { font-size: 0.85rem; color: #fff; }
+        /* 指纹解锁页 */
+        .fingerprint-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-align: center;
+            padding: 16px 0;
+        }
+        .fingerprint-screen .fp-icon { font-size: 3rem; opacity: 0.9; }
+        .fingerprint-screen .fp-tip { font-size: 0.85rem; color: #fff; }
+
+        /* 横格笔记本 */
+        .notebook-realistic {
+            background: #f7efd8;
+            background-image:
+                linear-gradient(90deg, transparent 0, transparent 46px, rgba(200,120,120,0.55) 46px, rgba(200,120,120,0.55) 47px, transparent 47px),
+                repeating-linear-gradient(180deg, transparent 0, transparent 27px, rgba(100,130,180,0.35) 27px, rgba(100,130,180,0.35) 28px);
+            border-radius: 4px;
+            box-shadow: inset 0 0 30px rgba(120,90,40,0.15), 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            padding: 24px 28px 24px 60px;
+            min-height: 340px;
+            overflow-y: auto;
+            color: #3a2e1e;
+        }
+        .notebook-realistic h4 {
+            color: #6b4a20;
+            font-size: 1.15rem;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        .notebook-realistic p {
+            font-size: 0.95rem;
+            line-height: 28px;
+            color: #3a2e1e;
+        }
+        .notebook-wrap {
+            position: relative;
+            background: rgba(0,0,0,0.7);
+            padding: 24px 40px;
+            border-radius: 10px;
+        }
+        .notebook-spread {
+            display: flex;
+            gap: 12px;
+            align-items: stretch;
+            justify-content: center;
+        }
+        .notebook-spread .notebook-realistic {
+            flex: 1 1 0;
+            min-width: 0;
+            max-width: 380px;
+        }
+        .notebook-spread .page-right-side {
+            background-image:
+                linear-gradient(270deg, transparent 0, transparent 46px, rgba(200,120,120,0.55) 46px, rgba(200,120,120,0.55) 47px, transparent 47px),
+                repeating-linear-gradient(180deg, transparent 0, transparent 27px, rgba(100,130,180,0.35) 27px, rgba(100,130,180,0.35) 28px);
+            padding: 24px 60px 24px 28px;
+        }
+        /* 始终左右摊开（像打开的书），小屏仅收紧间距 */
+        @media (max-width: 768px) {
+            .notebook-spread { flex-direction: row; gap: 6px; }
+            .notebook-spread .notebook-realistic { max-width: none; padding: 16px 14px 16px 40px !important; }
+            .notebook-spread .page-right-side { padding: 16px 40px 16px 14px !important; }
+            .notebook-wrap { padding: 20px 30px; }
+            .notebook-realistic p { font-size: 0.8rem; line-height: 22px; }
+            .notebook-realistic h4 { font-size: 0.95rem; }
+        }
+        .notebook-side-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 60px;
+            background: rgba(139,90,43,0.85);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.4rem;
+            cursor: pointer;
+            z-index: 5;
+        }
+        .notebook-side-btn:hover { background: rgba(160,107,58,0.95); }
+        .notebook-side-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .notebook-side-btn.prev { left: -8px; }
+        .notebook-side-btn.next { right: -8px; }
+        .notebook-page-dots {
+            position: absolute;
+            bottom: -18px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: #ddd;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-stage">
+        <div id="bg-container">
+            <img id="bg-image" src="picd1.jpg" alt="房间背景" draggable="false" />
+        </div>
+
+        <!-- 背包按键左移50像素：原x=1216，现x=1166 -->
+        <button class="hotspot" id="hotspot-phone" data-x="228" data-y="612" aria-label="手机"><span class="hotspot-dot"></span><span class="hotspot-label">手机</span></button>
+        <button class="hotspot" id="hotspot-keypad" data-x="1006" data-y="404" aria-label="密码输入器"><span class="hotspot-dot"></span><span class="hotspot-label">密码输入器</span></button>
+        <button class="hotspot" id="hotspot-stonebox" data-x="794" data-y="388" aria-label="石盒"><span class="hotspot-dot"></span><span class="hotspot-label">石盒</span></button>
+        <button class="hotspot" id="hotspot-backpack" data-x="1166" data-y="431" aria-label="背包"><span class="hotspot-dot"></span><span class="hotspot-label">背包</span></button>
+    </div>
+
+    <div id="corner-buttons">
+        <button class="corner-btn evidence-btn" id="btn-toggle-evidence" aria-label="证据栏"><span class="btn-icon">🔍</span><span>证据</span></button>
+        <button class="corner-btn backpack-btn" id="btn-toggle-backpack" aria-label="背包栏"><span class="btn-icon">🎒</span><span>背包</span></button>
+    </div>
+
+    <div id="evidence-panel">
+        <div class="panel-header"><span>📋 证据栏</span><span style="font-size:0.8rem;color:#8b6e4b;">点击外部关闭</span></div>
+        <div class="evidence-list" id="evidence-list"><div class="evidence-empty" id="evidence-empty">暂无证据</div></div>
+        <div class="panel-footer">
+            <div id="evidence-counter"><span class="count-num" id="evidence-count-num">0</span> / 4</div>
+            <div id="detective-code">侦探助手录入码：fszr6382</div>
+            <button id="btn-return-hall" onclick="goToPage3()">返回大厅</button>
+        </div>
+    </div>
+
+    <div id="backpack-panel">
+        <div class="panel-header"><span>🎒 背包</span><span style="font-size:0.8rem;color:#8b6e4b;">点击物品选中</span></div>
+        <div class="backpack-list" id="backpack-list"><div class="backpack-empty" id="backpack-empty">背包空空如也</div></div>
+    </div>
+
+    <div id="modal-container"></div>
+    <div id="toast-container"></div>
+
+    <script>
+        const state = {
+            evidenceCollected: new Set(),
+            backpackItems: [],
+            selectedBackpackItem: null,
+            phoneUnlocked: false,
+            phonePassword: '',
+            phoneAlbumViewed: false,
+            phoneFileViewed: false,
+            keypadUnlocked: false,
+            keypadInput: '',
+            stoneBoxSolved: false,
+            puzzleAngles: [],
+            notebookViewed: false,
+            backpackPhotoViewed: false,
+        };
+
+        const TOTAL_EVIDENCE = 4;
+        const EVIDENCE_PHONE = 'evidence_phone';
+        const EVIDENCE_KEYPAD = 'evidence_keypad';
+        const EVIDENCE_NOTEBOOK = 'evidence_notebook';
+        const EVIDENCE_BACKPACK = 'evidence_backpack';
+
+        const ORIGINAL_WIDTH = 1709;
+        const ORIGINAL_HEIGHT = 960;
+
+        const bgImage = document.getElementById('bg-image');
+        const bgContainer = document.getElementById('bg-container');
+        const hotspots = document.querySelectorAll('.hotspot');
+        const modalContainer = document.getElementById('modal-container');
+        const toastContainer = document.getElementById('toast-container');
+        const evidencePanel = document.getElementById('evidence-panel');
+        const backpackPanel = document.getElementById('backpack-panel');
+        const evidenceList = document.getElementById('evidence-list');
+        const evidenceEmpty = document.getElementById('evidence-empty');
+        const evidenceCountNum = document.getElementById('evidence-count-num');
+        const btnReturnHall = document.getElementById('btn-return-hall');
+        const detectiveCode = document.getElementById('detective-code');
+        const backpackList = document.getElementById('backpack-list');
+        const backpackEmpty = document.getElementById('backpack-empty');
+        const btnToggleEvidence = document.getElementById('btn-toggle-evidence');
+        const btnToggleBackpack = document.getElementById('btn-toggle-backpack');
+
+        function showToast(msg) { const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            toastContainer.appendChild(t);
+            setTimeout(() => { if (t.parentNode) t.parentNode.removeChild(t); }, 1900); }
+
+        function closeAllModals() { modalContainer.innerHTML = ''; }
+
+        function openModal(html, options = {}) {
+            closeAllModals();
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            if (options.zIndex) overlay.style.zIndex = options.zIndex;
+            const box = document.createElement('div');
+            box.className = 'modal-box';
+            if (options.customClass) options.customClass.split(/\s+/).filter(Boolean).forEach(c => box.classList.add(c));
+            box.innerHTML = html;
+            if (options.closeOnOverlay !== false) overlay.addEventListener('click', (e) => { if (e.target === overlay)
+                    closeModal(overlay); });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            overlay.appendChild(box);
+            modalContainer.appendChild(overlay);
+            return { overlay, box };
+        }
+
+        function closeModal(overlay) { if (!overlay) return;
+            overlay.classList.add('closing');
+            setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200); }
+
+        function collectEvidence(id, text) { if (state.evidenceCollected.has(id)) return;
+            state.evidenceCollected.add(id);
+            updateEvidencePanel();
+            showToast('📌 已收录证据：' + text); }
+
+        function updateEvidencePanel() {
+            const count = state.evidenceCollected.size;
+            evidenceCountNum.textContent = count;
+            if (count === 0) { evidenceEmpty.style.display = 'block';
+                evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+                btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none'; return; }
+            evidenceEmpty.style.display = 'none';
+            evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+            const map = {
+                [EVIDENCE_PHONE]: '收集死者行程及个人习惯',
+                [EVIDENCE_KEYPAD]: '携带镇静类药品',
+                [EVIDENCE_NOTEBOOK]: 's市警察局笔记本',
+                [EVIDENCE_BACKPACK]: '嫌疑人与冯志远多年前的合照'
+            };
+            state.evidenceCollected.forEach(eid => { const item = document.createElement('div');
+                item.className = 'evidence-item';
+                item.textContent = map[eid] || eid;
+                evidenceList.appendChild(item); });
+            if (count >= TOTAL_EVIDENCE) { btnReturnHall.style.display = 'block';
+                detectiveCode.style.display = 'block'; } else { btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none'; }
+        }
+
+        function toggleEvidencePanel(show) { if (show === undefined) show = evidencePanel.style.display !== 'flex';
+            evidencePanel.style.display = show ? 'flex' : 'none'; }
+
+        function toggleBackpackPanel(show) { if (show === undefined) show = backpackPanel.style.display !== 'flex';
+            backpackPanel.style.display = show ? 'flex' : 'none'; if (show) updateBackpackPanel(); }
+
+        function addToBackpack(id, name, icon) { if (state.backpackItems.some(i => i.id === id)) return;
+            state.backpackItems.push({ id, name, icon: icon || '📦' });
+            updateBackpackPanel();
+            showToast('🎒 获得：' + name); }
+
+        function updateBackpackPanel() { backpackList.querySelectorAll('.backpack-item').forEach(el => el.remove()); if (state
+                .backpackItems.length === 0) { backpackEmpty.style.display = 'block'; return; }
+            backpackEmpty.style.display = 'none';
+            state.backpackItems.forEach(item => { const el = document.createElement('div');
+                el.className = 'backpack-item';
+                if (state.selectedBackpackItem === item.id) el.classList.add('selected');
+                el.innerHTML = `<span>${item.icon}</span><span>${item.name}</span>`;
+                el.addEventListener('click', (e) => { e.stopPropagation();
+                    selectBackpackItem(item.id); });
+                backpackList.appendChild(el); }); }
+
+        function selectBackpackItem(id) { if (state.selectedBackpackItem === id) state.selectedBackpackItem = null;
+            else { const item = state.backpackItems.find(i => i.id === id); if (item) { state.selectedBackpackItem = id;
+                    showToast('已选中：' + item.name); } } updateBackpackPanel(); }
+
+        document.addEventListener('click', (e) => { if (evidencePanel.style.display === 'flex' && !evidencePanel.contains(e
+                    .target) && e.target !== btnToggleEvidence) toggleEvidencePanel(false); if (backpackPanel.style
+                    .display === 'flex' && !backpackPanel.contains(e.target) && e.target !== btnToggleBackpack)
+                toggleBackpackPanel(false); });
+        btnToggleEvidence.addEventListener('click', (e) => { e.stopPropagation();
+            toggleEvidencePanel(); });
+        btnToggleBackpack.addEventListener('click', (e) => { e.stopPropagation();
+            toggleBackpackPanel(); });
+
+        function positionHotspots() {
+            const imgRect = bgImage.getBoundingClientRect();
+            const containerRect = bgContainer.getBoundingClientRect();
+            hotspots.forEach(hotspot => {
+                const x = parseFloat(hotspot.dataset.x);
+                const y = parseFloat(hotspot.dataset.y);
+                const pctX = x / ORIGINAL_WIDTH;
+                const pctY = y / ORIGINAL_HEIGHT;
+                const left = imgRect.left - containerRect.left + pctX * imgRect.width;
+                const top = imgRect.top - containerRect.top + pctY * imgRect.height;
+                hotspot.style.left = (left / containerRect.width * 100) + '%';
+                hotspot.style.top = (top / containerRect.height * 100) + '%';
+            });
+        }
+
+        document.getElementById('hotspot-phone').addEventListener('click', () => openPhone());
+        document.getElementById('hotspot-keypad').addEventListener('click', () => openKeypad());
+        document.getElementById('hotspot-stonebox').addEventListener('click', () => openStoneBox());
+        document.getElementById('hotspot-backpack').addEventListener('click', () => openBackpack());
+
+        // ========== 手机 ==========
+        function openPhone() {
+            if (!state.phoneUnlocked) { showPhoneLock(); return; }
+            showPhoneHome();
+        }
+
+        function showPhoneLock() {
+            state.phonePassword = '';
+            const html = `<div class="phone-frame"><div class="phone-screen screen-yellow">
+                <div class="phone-status-bar"><span>🔋</span><span>2026-08-15 19:00</span></div>
+                <div style="text-align:center;font-size:0.8rem;color:#5b3e24;margin-bottom:12px;font-weight:600;">输入密码</div>
+                <div class="password-dots">${Array(7).fill('<div class="password-dot"></div>').join('')}</div>
+                <div class="keypad">
+                    ${[1,2,3,4,5,6,7,8,9,'',0,'⌫'].map(k=>`<button class="keypad-btn" data-key="${k}">${k}</button>`).join('')}
+                </div>
+            </div></div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+            const dots = box.querySelectorAll('.password-dot');
+            box.querySelectorAll('.keypad-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const key = btn.dataset.key;
+                    if (key === '⌫') { state.phonePassword = state.phonePassword.slice(0, -1);
+                        dots.forEach((d, i) => d.classList.toggle('filled', i < state.phonePassword.length)); } else if (
+                        key !== '') { if (state.phonePassword.length < 7) { state.phonePassword += key;
+                            dots.forEach((d, i) => d.classList.toggle('filled', i < state.phonePassword.length)); if (
+                                state.phonePassword.length === 7) { if (state.phonePassword === '2016022') { state
+                                        .phoneUnlocked = true;
+                                        closeModal(overlay);
+                                        showPhoneHome(); } else { showToast('密码错误');
+                                        state.phonePassword = '';
+                                        dots.forEach(d => d.classList.remove('filled')); } } } } else { /* 空按钮无功能 */ }
+                });
+            });
+        }
+
+        function showPhoneHome() {
+            const html = `<div class="phone-frame"><div class="phone-screen screen-yellow">
+                <div class="phone-status-bar"><span>🔋</span><span>2026-08-15 19:00</span></div>
+                <div class="phone-app-grid">
+                    <div class="phone-app" id="phone-album-app"><span class="app-icon">📷</span><span class="app-name">相册</span></div>
+                    <div class="phone-app" id="phone-file-app"><span class="app-icon">📁</span><span class="app-name">文件管理</span></div>
+                </div>
+                <div id="phone-content" class="phone-content"></div>
+            </div></div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'flat' });
+            const desktop = box.querySelector('.phone-app-grid');
+            const content = box.querySelector('#phone-content');
+            box.querySelector('#phone-album-app').addEventListener('click', () => {
+                desktop.style.display = 'none';
+                content.style.display = 'block';
+                content.innerHTML =
+                    `<div class="album-viewer"><div class="album-nav-bar"><button class="nav-back" id="phone-back">←</button><span>今天 18:15</span><span style="width:28px;"></span></div><div class="album-image-area"><img src="picc10.jpg" draggable="false" class="zoomable-img" /></div><div class="album-action-bar"><button id="switch-photo" style="background:#8b5a2b;color:#fff;border:none;border-radius:4px;padding:6px 16px;cursor:pointer;">切换照片</button></div></div>`;
+                content.querySelector('#phone-back').addEventListener('click', () => { content.innerHTML = '';
+                    content.style.display = 'none';
+                    desktop.style.display = 'flex'; });
+                content.querySelector('.zoomable-img').addEventListener('click', function() { showFullscreenImage(this
+                        .src); });
+                let albumIndex = 0;
+                content.querySelector('#switch-photo').addEventListener('click', () => {
+                    albumIndex = albumIndex === 0 ? 1 : 0;
+                    const img = albumIndex === 0 ? 'picc10.jpg' : 'picd2.jpg';
+                    content.querySelector('.zoomable-img').src = img;
+                });
+                if (!state.phoneAlbumViewed) { state.phoneAlbumViewed = true;
+                    checkPhoneEvidence(); }
+            });
+            box.querySelector('#phone-file-app').addEventListener('click', () => {
+                desktop.style.display = 'none';
+                content.style.display = 'block';
+                renderFileList();
+            });
+            function renderFileList() {
+                content.innerHTML =
+                    `<div class="album-nav-bar" style="border-radius:8px 8px 0 0;"><button class="nav-back" id="file-back">←</button><span>文件管理</span><span style="width:28px;"></span></div>` +
+                    `<div class="file-list-row" id="file-row-doc"><span class="row-icon">📄</span><span class="row-name">舒代华个人习惯总结.docx</span></div>`;
+                content.querySelector('#file-back').addEventListener('click', () => { content.innerHTML = '';
+                    content.style.display = 'none';
+                    desktop.style.display = 'flex'; });
+                content.querySelector('#file-row-doc').addEventListener('click', renderFingerprint);
+            }
+            function renderFingerprint() {
+                // 点击文件 → 需要指纹解锁；没有电器时不显示指纹解锁按钮
+                const hasElectric = state.backpackItems.some(i => /电器|电子|设备|指纹/.test(i.name));
+                let extra = '';
+                if (hasElectric) extra = '<button class="fingerprint-btn" id="fingerprint-btn">🔓 指纹解锁</button><div id="fingerprint-result"></div>';
+                content.innerHTML =
+                    `<div class="album-nav-bar"><button class="nav-back" id="fp-back">←</button><span>文件</span><span style="width:28px;"></span></div>` +
+                    `<div class="fingerprint-screen"><div class="fp-icon">🔒</div><div class="fp-tip">该文件需要指纹解锁</div>${extra}</div>`;
+                content.querySelector('#fp-back').addEventListener('click', renderFileList);
+                if (!state.phoneFileViewed) { state.phoneFileViewed = true; checkPhoneEvidence(); }
+                const fpBtn = content.querySelector('#fingerprint-btn');
+                if (fpBtn) fpBtn.addEventListener('click', () => {
+                    content.querySelector('#fingerprint-result').innerHTML =
+                        '<p style="color:#d9534f;font-size:0.8rem;">指纹验证失败，无法访问</p>';
+                });
+            }
+        }
+
+        function checkPhoneEvidence() {
+            if (state.phoneAlbumViewed && state.phoneFileViewed) {
+                collectEvidence(EVIDENCE_PHONE, '收集死者行程及个人习惯');
+            }
+        }
+
+        // ========== 密码输入器 / 橱柜 ==========
+        function openKeypad() {
+            if (state.keypadUnlocked) { openCabinet(); return; }
+            state.keypadInput = '';
+            const html = `<h3>🔢 密码输入器</h3><p style="text-align:center;font-size:0.85rem;color:#aaa;">7位密码，按井号键确认</p>
+            <div class="keypad-grid">
+                ${[1,2,3,4,5,6,7,8,9,'*',0,'#'].map(k=>`<button class="key" data-key="${k}">${k}</button>`).join('')}
+            </div><div style="text-align:center;margin-top:12px;font-size:0.9rem;min-height:24px;" id="keypad-display"></div>
+            <button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'modal-black' });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            const display = box.querySelector('#keypad-display');
+            box.querySelectorAll('.key').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const key = btn.dataset.key;
+                    if (key === '#') { if (state.keypadInput === '1235789') { state.keypadUnlocked = true;
+                            bgImage.src = 'picd3.jpg';
+                            positionHotspots();
+                            document.getElementById('hotspot-keypad').querySelector('.hotspot-label')
+                                .textContent = '橱柜';
+                            closeModal(overlay); } else { showToast('密码错误');
+                            state.keypadInput = '';
+                            display.textContent = ''; } } else if (key === '*') { state.keypadInput = '';
+                        display.textContent = ''; } else { if (state.keypadInput.length < 7) { state
+                                .keypadInput += key;
+                            display.textContent = '*'.repeat(state.keypadInput.length); } }
+                });
+            });
+        }
+
+        function openCabinet() {
+            const html =
+                `<h3>🗄️ 橱柜</h3><div style="text-align:center;margin-bottom:12px;"><img src="picd4.jpg" style="max-width:70vw;max-height:45vh;border-radius:8px;" draggable="false" /></div><p style="font-size:0.85rem;color:#5b3e24;line-height:1.8;">注：咪达唑仑是短效强效苯二氮䓬类镇静药，口服约15-30分钟起效。</p><button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            collectEvidence(EVIDENCE_KEYPAD, '携带镇静类药品');
+        }
+
+        // ========== 石盒拼图 ==========
+        function openStoneBox() {
+            if (state.stoneBoxSolved) { showNotebook(); return; }
+            initPuzzle();
+            const html = `<div class="puzzle-grid" id="puzzle-grid" style="max-width:100%; margin:0 auto; gap:5px;">
+                ${state.puzzleAngles.map((angle,index)=>`<div class="puzzle-piece" style="background-image:url('picd5.jpg'); background-size:400% 300%; background-position:${(index%4)*(100/3)}% ${Math.floor(index/4)*50}%; transform:rotate(${angle}deg);" data-index="${index}"></div>`).join('')}
+            </div>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'puzzle-modal flat' });
+
+            const pieces = box.querySelectorAll('.puzzle-piece');
+            pieces.forEach(piece => {
+                piece.addEventListener('click', function() {
+                    const idx = parseInt(this.dataset.index);
+                    // 累加角度，不归零：270→360 视觉上顺时针转90°，不会反向转一整圈
+                    state.puzzleAngles[idx] = state.puzzleAngles[idx] + 90;
+                    this.style.transform = `rotate(${state.puzzleAngles[idx]}deg)`;
+                    // 检查是否全部归位（对360取模为0即正确）
+                    if (state.puzzleAngles.every(a => a % 360 === 0)) {
+                        state.stoneBoxSolved = true; // 永久解锁
+                        closeModal(overlay);
+                        showNotebook();
+                    }
+                });
+            });
+        }
+
+        function initPuzzle() {
+            state.puzzleAngles = [];
+            for (let i = 0; i < 12; i++) state.puzzleAngles.push([0, 90, 180, 270][Math.floor(Math.random() * 4)]);
+        }
+
+        // ========== 笔记本（修改：最后一页左侧文字更改，右侧剪报保留） ==========
+        function showNotebook() {
+            let currentPage = 0;
+            const pages = [
+                { left: '<h4>S市警察局调查笔记</h4>', right: '<p>姓名：冯志远<br>警号：2016-022</p>' },
+                { left: '<h4>案件编号：XC-2016-0814</h4><p>案发地点：翡翠湾别墅区B区7栋<br>接警时间：2016年8月14日20:15<br>死者：赵国富（父，52岁）、林婉清（母，45岁）、赵小宇（子，7岁）<br>初步定性：入室抢劫杀人</p>',
+                    right: '<h4>现场疑点：</h4><p>1. 保险柜被撬，财物丢失。但主卧枕头下百达翡丽手表未被拿走，不合理。<br>2. 赵小宇的限量球星卡压在茶几玻璃渣下，未被取走。<br>3. 行凶顺序：父→母→子。若为抢劫，无需对7岁孩子灭口。<br>结论：凶手在找特定物品，财物丢失为伪装。</p>' },
+                { left: '<h4>时间线：</h4><p>· 15:30 赵国富在花园浇花，活着。<br>· 16:00-16:45 舒代华到访谈合作，携U盘。<br>· 16:50 舒代华驾车离开。后称U盘遗失在赵宅，警方搜查未找到。<br>· 17:20 邻居听到闷响。<br>· 18:10 外卖员"张伟"步行离开，电话为空号。</p>',
+                    right: '<h4>嫌疑人：</h4><p>· 舒代华：考拉集团高层，案发时在场，有合作动机，但时间线不吻合。主动交代U盘遗失，可疑。<br>· 外卖员（身份不明）：登记"张伟"，查无此人。小区大门拍到的模糊侧影，着黄色外卖服，头盔压低，背微驼。后山荒地小路发现41码红土鞋印，与现场一致。监控中断，未追踪到。</p>' },
+                { left: '<h4>外围信息：</h4><p>· 舒代华有胞弟舒代雄，无业。兄弟关系差，舒代雄曾因钱与哥哥发生冲突。<br>· 案发当天舒代雄自称在家睡觉，无人佐证。<br>· 考拉集团内部：此次合作若成，舒代华将升任VP。</p>',
+                    right: '<h4>疑点（未经证实）：</h4><p>· 伪装外卖员潜入时间与舒代华前往现场时间极其接近。<br>· 合作U盘丢失，凶手和舒代华也有关？<br>· 证据缺失：无监控正面照，无U盘下落。<br>下一步：前往舒代华位于半山别墅区的住所当面问询，核实舒代雄案发当天行踪及其步态特征。</p>' },
+                // ★★★★★ 修改后的最后一页：左侧文字改为调查笔记，右侧保留剪报夹页 ★★★★★
+                {
+                    left: '<div style="display:flex;flex-direction:column;justify-content:center;height:100%;padding:10px 0;"><p style="color:#3e2f1f;font-size:0.9rem;line-height:1.8;border-left:2px solid #c4a882;padding-left:14px;">我得去这个嫌疑人家里调查一下</p><p style="color:#999;font-size:0.75rem;margin-top:16px;text-align:right;">（笔记后面没有其他内容，都是空白页）</p></div>',
+                    right: '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:8px 0;position:relative;">' +
+                        '<div style="font-size:0.75rem;color:#8b5a2b;font-weight:600;letter-spacing:2px;margin-bottom:6px;border-bottom:1px dashed #c4a882;padding-bottom:4px;">📰 新闻剪报</div>' +
+                        '<div style="position:relative;display:inline-block;max-width:90%;">' +
+                        '<img src="picd9.jpg" style="max-width:100%;max-height:200px;border-radius:3px;cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,0.25);border:1px solid #d4c5a8;object-fit:contain;background:#f5e6d3;display:block;" draggable="false" onclick="showFullscreenImage(this.src)" />' +
+                        '<div class="clip-tape t1"></div><div class="clip-tape t2"></div><div class="clip-tape t3"></div><div class="clip-tape t4"></div>' +
+                        '</div>' +
+                        '<p style="font-size:0.65rem;color:#8b6e4b;margin-top:6px;border-top:1px dashed #c4a882;padding-top:4px;">点击图片放大查看</p>' +
+                        '</div>'
+                }
+            ];
+
+            const html = `<div class="notebook-wrap">
+                <button class="notebook-side-btn prev" id="prev-page" ${currentPage===0?'disabled':''}>‹</button>
+                <div class="notebook-spread handwriting-font">
+                    <div class="notebook-realistic" id="page-left">${pages[currentPage].left}</div>
+                    <div class="notebook-realistic page-right-side" id="page-right">${pages[currentPage].right}</div>
+                </div>
+                <button class="notebook-side-btn next" id="next-page" ${currentPage===pages.length-1?'disabled':''}>›</button>
+                <div class="notebook-page-dots">${currentPage+1} / ${pages.length}</div>
+                <button class="modal-close-btn" style="position:absolute;top:8px;right:12px;color:#fff;">✕</button>
+            </div>`;
+
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => { closeModal(overlay);
+                collectEvidence(EVIDENCE_NOTEBOOK, 's市警察局笔记本'); });
+            const prevBtn = box.querySelector('#prev-page');
+            const nextBtn = box.querySelector('#next-page');
+
+            function updatePage() {
+                box.querySelector('#page-left').innerHTML = pages[currentPage].left;
+                box.querySelector('#page-right').innerHTML = pages[currentPage].right;
+                box.querySelector('#prev-page').disabled = currentPage === 0;
+                box.querySelector('#next-page').disabled = currentPage === pages.length - 1;
+                box.querySelector('.notebook-page-dots').textContent = `${currentPage+1} / ${pages.length}`;
+            }
+            prevBtn.addEventListener('click', () => { if (currentPage > 0) { currentPage--;
+                    updatePage(); } });
+            nextBtn.addEventListener('click', () => { if (currentPage < pages.length - 1) { currentPage++;
+                    updatePage(); } });
+        }
+
+        // ========== 背包 ==========
+        function openBackpack() {
+            const html =
+                `<h3>🎒 背包</h3><div style="text-align:center;position:relative;margin-bottom:16px;"><img src="picd6.jpg" style="max-width:70vw;max-height:45vh;border-radius:8px;" draggable="false" /><button id="btn-photo-center" style="position:absolute;top:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.5);border:2px dashed #fff;color:#fff;font-size:0.8rem;padding:6px 12px;border-radius:50%;cursor:pointer;">照片</button></div><button class="modal-close-btn">✕</button>`;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            box.querySelector('#btn-photo-center').addEventListener('click', () => {
+                const contentHtml =
+                    `<h3>📸 照片</h3><div style="text-align:center;position:relative;"><img id="backpack-photo-img" src="picd7.jpg" style="max-width:70vw;max-height:50vh;border-radius:8px;" draggable="false" /><button id="btn-photo-switch" style="position:absolute;top:10px;right:10px;background:rgba(139,90,43,0.8);border:none;color:#fff;font-size:20px;width:36px;height:36px;border-radius:50%;cursor:pointer;">↻</button></div><button class="modal-close-btn">✕</button>`;
+                const { overlay: photoOverlay, box: photoBox } = openModal(contentHtml, { closeOnOverlay: true });
+                const photoClose = photoBox.querySelector('.modal-close-btn');
+                if (photoClose) photoClose.addEventListener('click', () => closeModal(photoOverlay));
+                const img = photoBox.querySelector('#backpack-photo-img');
+                let showingFirst = true;
+                photoBox.querySelector('#btn-photo-switch').addEventListener('click', () => {
+                    showingFirst = !showingFirst;
+                    img.src = showingFirst ? 'picd7.jpg' : 'picd8.jpg';
+                    if (!showingFirst && !state.backpackPhotoViewed) { state.backpackPhotoViewed = true;
+                        collectEvidence(EVIDENCE_BACKPACK, '嫌疑人与冯志远多年前的合照'); }
+                });
+                img.addEventListener('click', function() { showFullscreenImage(this.src); });
+            });
+        }
+
+        function showFullscreenImage(src) {
+            const div = document.createElement('div');
+            div.className = 'fullscreen-image';
+            div.innerHTML = `<img src="${src}" draggable="false" />`;
+            div.addEventListener('click', () => { div.remove(); });
+            document.body.appendChild(div);
+        }
+
+        function goToPage3() { window.location.href = 'page3.html'; }
+
+        function init() {
+            updateEvidencePanel();
+            updateBackpackPanel();
+            positionHotspots();
+            window.addEventListener('resize', positionHotspots);
+            window.addEventListener('orientationchange', () => setTimeout(positionHotspots, 300));
+            bgImage.addEventListener('load', positionHotspots);
+            if (bgImage.complete) positionHotspots();
+        }
+
+        init();
+    </script>
+</body>
+</html>

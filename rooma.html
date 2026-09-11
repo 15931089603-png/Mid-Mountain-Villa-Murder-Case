@@ -1,0 +1,2759 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>房间搜证 - ROOM A</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-panel: #f5e6d3;
+            --bg-panel-light: #e8d5c0;
+            --text-light: #3e2f1f;
+            --text-warm: #5b3e24;
+            --accent: #8b5a2b;
+            --accent-hover: #a06b3a;
+            --danger: #b0453c;
+            --success: #4a6b3a;
+            --border-color: #c4a882;
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            --shadow-sm: 0 4px 15px rgba(0, 0, 0, 0.25);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --font-size-base: 16px;
+            --z-bg: 1;
+            --z-hotspot: 2;
+            --z-modal: 10;
+            --z-modal-content: 11;
+            --z-evidence-panel: 60;
+            --z-backpack-panel: 70;
+            --z-selected-item: 80;
+            --z-toast: 100;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            font-size: var(--font-size-base);
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            touch-action: manipulation;
+        }
+
+        #main-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #0a0a12;
+        }
+
+        #bg-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: var(--z-bg);
+        }
+
+        #bg-container img#bg-image {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .hotspot {
+            position: absolute;
+            z-index: var(--z-hotspot);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            pointer-events: auto;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hotspot .hotspot-dot {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px dashed rgba(255, 255, 255, 0.35);
+            transition: all 0.25s ease;
+            pointer-events: none;
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+        }
+        .hotspot:hover .hotspot-dot,
+        .hotspot:active .hotspot-dot {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
+            transform: scale(1.25);
+        }
+        .hotspot .hotspot-label {
+            position: absolute;
+            bottom: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.55);
+            white-space: nowrap;
+            pointer-events: none;
+            letter-spacing: 1px;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+        }
+        @media (max-width: 768px) {
+            .hotspot .hotspot-dot {
+                width: 26px;
+                height: 26px;
+            }
+            .hotspot .hotspot-label {
+                font-size: 8px;
+                bottom: -18px;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-modal);
+            background: rgba(0, 0, 0, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.25s ease;
+            pointer-events: auto;
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-overlay.closing {
+            animation: fadeOut 0.2s ease forwards;
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .modal-box {
+            position: relative;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            max-width: 90vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.3s ease;
+            pointer-events: auto;
+            z-index: var(--z-modal-content);
+            color: var(--text-light);
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal-box h3 {
+            font-size: 1.3rem;
+            margin-bottom: 16px;
+            color: var(--accent);
+            text-align: center;
+            letter-spacing: 2px;
+            font-weight: 600;
+        }
+        .modal-box .modal-close-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #8b6e4b;
+            font-size: 22px;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .modal-box .modal-close-btn:hover {
+            color: #4a2e1a;
+            background: rgba(139, 90, 43, 0.15);
+        }
+
+        #evidence-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 160px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 50vh;
+            background: var(--bg-panel);
+            border: 2px solid var(--accent);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-evidence-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInRight 0.3s ease;
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(40px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        #evidence-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: var(--accent);
+            cursor: default;
+        }
+        #evidence-panel .evidence-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 60px;
+        }
+        #evidence-panel .evidence-item {
+            background: rgba(139, 90, 43, 0.08);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            border-left: 3px solid var(--accent);
+            word-break: break-all;
+            color: var(--text-warm);
+        }
+        #evidence-panel .evidence-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.85rem;
+        }
+        #evidence-panel .panel-footer {
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-panel-light);
+        }
+        #evidence-counter {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-warm);
+            letter-spacing: 2px;
+        }
+        #evidence-counter .count-num {
+            color: var(--accent);
+            font-size: 1.3rem;
+        }
+        #btn-return-hall {
+            display: none;
+            background: var(--accent);
+            color: #f5e6d3;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.25s;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.35);
+        }
+        #btn-return-hall:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 90, 43, 0.5);
+        }
+        #btn-return-hall:active {
+            transform: translateY(0);
+        }
+
+        #detective-code {
+            display: none;
+            font-size: 0.85rem;
+            color: #8b5a2b;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-top: 2px;
+            text-align: center;
+            width: 100%;
+            padding: 4px 0;
+            border-top: 1px dashed rgba(139, 90, 43, 0.25);
+        }
+
+        #backpack-panel {
+            position: fixed;
+            right: 16px;
+            bottom: 220px;
+            width: 300px;
+            max-width: 80vw;
+            max-height: 45vh;
+            background: var(--bg-panel);
+            border: 2px solid #6a8daf;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            z-index: var(--z-backpack-panel);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideInRight 0.3s ease;
+        }
+        #backpack-panel .panel-header {
+            padding: 12px 16px;
+            background: var(--bg-panel-light);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #6a8daf;
+            cursor: default;
+        }
+        #backpack-panel .backpack-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 60px;
+        }
+        #backpack-panel .backpack-item {
+            background: rgba(139, 90, 43, 0.06);
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-left: 3px solid #6a8daf;
+            word-break: break-all;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+            color: var(--text-warm);
+        }
+        #backpack-panel .backpack-item:hover {
+            background: rgba(139, 90, 43, 0.15);
+            border-left-color: #8ab8d8;
+        }
+        #backpack-panel .backpack-item.selected {
+            background: rgba(106, 141, 175, 0.25);
+            border-left-color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+        }
+        #backpack-panel .backpack-empty {
+            color: #9a8668;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.85rem;
+        }
+
+        #corner-buttons {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 55;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .corner-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(139, 90, 43, 0.85);
+            color: #f5e6d3;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            letter-spacing: 1px;
+            -webkit-tap-highlight-color: transparent;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            user-select: none;
+        }
+        .corner-btn .btn-icon {
+            font-size: 1.4rem;
+            line-height: 1;
+            margin-bottom: 2px;
+            pointer-events: none;
+        }
+        .corner-btn:hover {
+            background: rgba(160, 107, 58, 0.9);
+            border-color: rgba(255, 255, 255, 0.7);
+            transform: scale(1.05);
+        }
+        .corner-btn:active {
+            transform: scale(0.95);
+        }
+        .corner-btn.evidence-btn {
+            border-color: var(--accent);
+            background: rgba(139, 90, 43, 0.9);
+        }
+        .corner-btn.evidence-btn .btn-icon {
+            color: var(--accent);
+        }
+        .corner-btn.backpack-btn {
+            border-color: #6a8daf;
+            background: rgba(106, 141, 175, 0.85);
+        }
+        .corner-btn.backpack-btn .btn-icon {
+            color: #e0e8f0;
+        }
+        @media (max-width: 768px) {
+            .corner-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 0.65rem;
+            }
+            .corner-btn .btn-icon {
+                font-size: 1.2rem;
+            }
+            #corner-buttons {
+                right: 10px;
+                bottom: 10px;
+                gap: 8px;
+            }
+        }
+
+        .toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(62, 47, 31, 0.9);
+            color: #f5e6d3;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 1rem;
+            z-index: var(--z-toast);
+            pointer-events: none;
+            animation: toastInOut 1.8s ease forwards;
+            text-align: center;
+            max-width: 80vw;
+            letter-spacing: 1px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        @keyframes toastInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            15% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+        }
+
+        /* 旧 puzzle 样式保留兼容 */
+        .puzzle-container {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .puzzle-track {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .puzzle-track:hover {
+            background: rgba(139, 90, 43, 0.1);
+        }
+        .puzzle-rail {
+            width: 60px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid #8b5a2b;
+            border-radius: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .puzzle-rail .puzzle-ball {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #fff, #c9a84c 60%, #8a6d2f);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+            transition: top 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+            cursor: pointer;
+            pointer-events: auto;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .puzzle-ball.position-top {
+            top: 8px;
+        }
+        .puzzle-ball.position-bottom {
+            top: calc(120px - 44px - 8px);
+        }
+        .puzzle-status {
+            margin-top: 8px;
+            font-size: 0.8rem;
+            color: #8b6e4b;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .puzzle-status.top { color: #4a6b3a; }
+        .puzzle-status.bottom { color: #b0453c; }
+        .unlock-hint {
+            font-size: 0.8rem;
+            color: #4a6b3a;
+            text-align: center;
+            letter-spacing: 3px;
+            animation: pulse 1.5s ease infinite;
+            margin-top: 8px;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .puzzle-reward-display {
+            text-align: center;
+            margin-top: 10px;
+            padding: 16px;
+            background: rgba(139, 90, 43, 0.06);
+            border-radius: 10px;
+            border: 1px dashed var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .puzzle-reward-display img {
+            max-width: 60vw;
+            max-height: 40vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+        }
+        .reward-text {
+            font-size: 0.95rem;
+            color: var(--text-warm);
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .btn-confirm-reward {
+            margin-top: 8px;
+            background: var(--accent);
+            color: #f5e6d3;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 28px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.25s;
+        }
+        .btn-confirm-reward:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+        }
+
+        /* =========================================================
+           电脑弹窗 UI
+           ========================================================= */
+        .computer-modal-box {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            overflow: visible;
+            max-width: 92vw;
+            max-height: 88vh;
+        }
+
+        .win-boot-screen {
+            width: 640px;
+            max-width: 92vw;
+            height: 440px;
+            max-height: 78vh;
+            padding: 0 30px;
+            border-radius: 16px;
+            background: linear-gradient(160deg, rgba(232, 244, 255, 0.95) 0%, rgba(184, 215, 242, 0.9) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow:
+                0 24px 60px rgba(10, 40, 80, 0.45),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px) saturate(1.3);
+            -webkit-backdrop-filter: blur(20px) saturate(1.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        .win-boot-logo {
+            width: 78px;
+            height: 78px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            line-height: 1;
+            color: #4a88c4;
+            animation: spin 2s linear infinite;
+        }
+        .win-boot-text {
+            color: #3a668f;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .win-boot-text.win-boot-sub {
+            font-size: 0.7rem;
+            color: rgba(74, 122, 168, 0.8);
+            letter-spacing: 1px;
+        }
+        .win-boot-screen .modal-close-btn {
+            color: #4a7aa8;
+            font-size: 18px;
+        }
+        .win-boot-screen .modal-close-btn:hover {
+            color: #1f4a72;
+            background: rgba(255, 255, 255, 0.65);
+        }
+
+        .win-lock-screen {
+            position: relative;
+            width: 640px;
+            max-width: 92vw;
+            height: 440px;
+            max-height: 78vh;
+            padding: 30px;
+            border-radius: 16px;
+            background: linear-gradient(160deg,
+                        rgba(234, 245, 255, 0.94) 0%,
+                        rgba(180, 214, 243, 0.88) 55%,
+                        rgba(148, 192, 231, 0.92) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow:
+                0 26px 60px rgba(10, 40, 80, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95),
+                inset 0 -18px 40px rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(22px) saturate(1.35);
+            -webkit-backdrop-filter: blur(22px) saturate(1.35);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        .win-lock-screen::before {
+            content: '';
+            position: absolute;
+            top: -110px;
+            right: -70px;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%);
+            pointer-events: none;
+        }
+        .win-lock-screen::after {
+            content: '';
+            position: absolute;
+            bottom: -90px;
+            left: -60px;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(140, 195, 245, 0.55) 0%, rgba(140, 195, 245, 0) 70%);
+            pointer-events: none;
+        }
+        .win-lock-avatar {
+            position: relative;
+            z-index: 1;
+            width: 126px;
+            height: 126px;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            background: radial-gradient(circle at 34% 28%, #ffffff 0%, #dcebfa 48%, #a9cdec 100%);
+            border: 3px solid rgba(255, 255, 255, 0.95);
+            box-shadow:
+                0 14px 34px rgba(35, 80, 130, 0.32),
+                inset 0 -8px 18px rgba(120, 165, 210, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .win-lock-avatar svg {
+            width: 74px;
+            height: 74px;
+            display: block;
+        }
+        .win-lock-hint {
+            position: relative;
+            z-index: 1;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 3px;
+            color: #35618c;
+        }
+        .win-lock-input-row {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .win-lock-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 48px;
+            padding: 0 18px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.62);
+            box-shadow: inset 0 2px 8px rgba(80, 125, 170, 0.16);
+            color: #24486c;
+            font-family: inherit;
+            font-size: 1.05rem;
+            letter-spacing: 6px;
+            text-align: center;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            transition: all 0.25s ease;
+        }
+        .win-lock-input::placeholder {
+            color: rgba(80, 125, 170, 0.5);
+            letter-spacing: 4px;
+        }
+        .win-lock-input:focus {
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow:
+                0 0 0 3px rgba(110, 170, 230, 0.4),
+                inset 0 2px 8px rgba(80, 125, 170, 0.12);
+        }
+        .win-lock-arrow {
+            flex: 0 0 48px;
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            background: linear-gradient(160deg, #74b0e2 0%, #3d7cba 100%);
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 1.35rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow:
+                0 8px 20px rgba(45, 95, 150, 0.42),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            transition: all 0.22s ease;
+        }
+        .win-lock-arrow:hover {
+            background: linear-gradient(160deg, #86bfec 0%, #4a8bca 100%);
+            transform: translateX(3px);
+            box-shadow:
+                0 10px 24px rgba(45, 95, 150, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        .win-lock-arrow:active {
+            transform: scale(0.94);
+        }
+        .win-lock-screen .win-login-error {
+            position: relative;
+            z-index: 1;
+            min-height: 18px;
+            margin-top: -4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            color: #c0392b;
+        }
+        .win-lock-screen .modal-close-btn {
+            z-index: 2;
+            color: #4a7aa8;
+            font-size: 18px;
+        }
+        .win-lock-screen .modal-close-btn:hover {
+            color: #1f4a72;
+            background: rgba(255, 255, 255, 0.65);
+        }
+
+        .win-desktop {
+            position: relative;
+            width: 640px;
+            max-width: 92vw;
+            height: 440px;
+            max-height: 78vh;
+            padding: 0;
+            border-radius: 16px;
+            background: linear-gradient(45deg,
+                        #071e35 0%,
+                        #123f68 35%,
+                        #2b74ae 68%,
+                        #7cbbe9 100%);
+            border: 1px solid rgba(150, 205, 250, 0.35);
+            box-shadow:
+                0 26px 64px rgba(0, 10, 25, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+        .win-desktop-topbar {
+            flex: 0 0 auto;
+            text-align: right;
+            padding: 8px 42px 0 18px;
+            font-size: 0.66rem;
+            letter-spacing: 1.5px;
+            color: rgba(200, 228, 252, 0.7);
+            position: relative;
+            z-index: 20;
+        }
+        .win-desktop-icons {
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            padding: 6px 12px 4px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            position: relative;
+            z-index: 12;
+        }
+        .win-desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            width: 68px;
+            padding: 6px 3px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.22s ease;
+            -webkit-tap-highlight-color: transparent;
+            flex: 0 0 auto;
+        }
+        .win-desktop-icon:hover {
+            background: rgba(160, 210, 255, 0.16);
+            border-color: rgba(170, 215, 255, 0.4);
+        }
+        .win-desktop-icon:active {
+            transform: scale(0.97);
+        }
+        .win-desktop-icon .icon-img {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            line-height: 1;
+            border-radius: 10px;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.96) 0%, rgba(198, 224, 246, 0.9) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            box-shadow:
+                0 6px 14px rgba(0, 20, 45, 0.38),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            pointer-events: none;
+        }
+        .win-desktop-icon .icon-name {
+            width: 100%;
+            font-size: 0.66rem;
+            line-height: 1.25;
+            letter-spacing: 0.2px;
+            color: #e8f4ff;
+            text-shadow: 0 1px 4px rgba(0, 20, 45, 0.65);
+            word-break: break-all;
+            pointer-events: none;
+            text-align: center;
+        }
+        .win-desktop-icon .icon-name.word-file {
+            color: #d6ecff;
+        }
+        .win-desktop-tip {
+            flex: 0 0 auto;
+            text-align: center;
+            font-size: 0.68rem;
+            letter-spacing: 0.5px;
+            color: rgba(190, 222, 250, 0.68);
+            border-top: 1px solid rgba(160, 210, 255, 0.18);
+            padding: 5px 14px 6px;
+            position: relative;
+            z-index: 20;
+        }
+        .win-desktop-taskbar {
+            flex: 0 0 auto;
+            height: 44px;
+            background: rgba(5, 20, 38, 0.88);
+            border-top: 1px solid rgba(160, 210, 255, 0.25);
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            box-shadow: 0 -4px 14px rgba(0, 10, 25, 0.4);
+            position: relative;
+            z-index: 25;
+        }
+        .win-taskbar-start {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #e8f4ff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s ease;
+        }
+        .win-taskbar-start:hover {
+            background: rgba(160, 210, 255, 0.2);
+        }
+        .win-taskbar-start .start-icon {
+            font-size: 0.95rem;
+            line-height: 1;
+        }
+        .win-desktop .modal-close-btn {
+            z-index: 30;
+            color: rgba(210, 235, 255, 0.85);
+            font-size: 18px;
+        }
+        .win-desktop .modal-close-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .win-subwindows {
+            position: absolute;
+            top: 26px;
+            left: 0;
+            right: 0;
+            bottom: 44px;
+            pointer-events: none;
+            z-index: 15;
+            overflow: hidden;
+        }
+
+        .win-subwindow {
+            position: absolute;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow:
+                0 14px 44px rgba(0, 15, 35, 0.6),
+                0 0 0 1px rgba(180, 215, 245, 0.6);
+            pointer-events: auto;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.22s ease;
+        }
+        .win-subwindow-close {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            z-index: 5;
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 50%;
+            background: #eef5fb;
+            color: #4a7aa8;
+            font-size: 13px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.18s ease;
+        }
+        .win-subwindow-close:hover {
+            background: #d9534f;
+            color: #ffffff;
+        }
+        .win-subwindow-close:active {
+            transform: scale(0.9);
+        }
+        .win-subwindow-body {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px 16px 16px;
+            color: #2a4a6b;
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+        .subwindow-title {
+            color: #2a4a6b;
+            font-size: 0.95rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 1px;
+            padding: 0 24px 10px 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #d4e6f5;
+        }
+        .win-subwindow .file-content {
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.74rem;
+            line-height: 1.55;
+            color: #2a4a6b;
+        }
+        .win-subwindow .file-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 6px 0;
+        }
+        .win-subwindow .file-content td {
+            padding: 4px 6px;
+            border: 1px solid #c9dcec;
+            font-size: 0.7rem;
+        }
+        .win-subwindow .file-signature {
+            margin-top: 14px;
+            text-align: right;
+            font-style: italic;
+            color: #4a7aa8;
+            font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+            font-size: 0.78rem;
+        }
+        .win-subwindow .compare-title {
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #2a4a6b;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #d4e6f5;
+            padding: 0 24px 8px 0;
+            margin-bottom: 12px;
+        }
+        .win-subwindow .compare-dropzones {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .win-subwindow .compare-dropzone {
+            width: 110px;
+            height: 110px;
+            border: 2px dashed #8ab8d8;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            gap: 5px;
+            background: #f5faff;
+            position: relative;
+        }
+        .win-subwindow .compare-dropzone:hover {
+            border-color: #4a8bca;
+            background: #e8f4fc;
+        }
+        .win-subwindow .compare-dropzone .plus-sign {
+            font-size: 1.9rem;
+            color: #8ab8d8;
+            pointer-events: none;
+            line-height: 1;
+        }
+        .win-subwindow .compare-dropzone .selected-file {
+            font-size: 0.65rem;
+            color: #2a4a6b;
+            text-align: center;
+            word-break: break-all;
+            pointer-events: none;
+            padding: 3px 5px;
+            background: #e3f0fa;
+            border-radius: 5px;
+            max-width: 92%;
+        }
+        .win-subwindow .compare-dropzone .remove-file {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 0.68rem;
+            color: #6a8daf;
+            cursor: pointer;
+            pointer-events: auto;
+            background: none;
+            border: none;
+        }
+        .win-subwindow .compare-result {
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #b0453c;
+            letter-spacing: 0.5px;
+            padding: 10px 8px;
+            background: #fef0e8;
+            border-radius: 6px;
+            border: 1px solid #eaa;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .win-subwindow .btn-compare-submit {
+            display: block;
+            margin: 4px auto 0;
+            background: linear-gradient(160deg, #4a8bca 0%, #2b6aa8 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 26px;
+            font-size: 0.84rem;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-weight: 600;
+            transition: all 0.22s ease;
+        }
+        .win-subwindow .btn-compare-submit:hover:not(:disabled) {
+            background: linear-gradient(160deg, #5a9bda 0%, #3a7ab8 100%);
+            transform: translateY(-1px);
+        }
+        .win-subwindow .btn-compare-submit:disabled {
+            background: #b8cfdf;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .win-subwindow .btn-confirm-compare-result {
+            display: block;
+            margin: 8px auto 0;
+            background: linear-gradient(160deg, #4a8bca 0%, #2b6aa8 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 7px 18px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.22s ease;
+        }
+        .win-subwindow .btn-confirm-compare-result:hover {
+            background: linear-gradient(160deg, #5a9bda 0%, #3a7ab8 100%);
+        }
+
+        .compare-file-list-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 95;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        .compare-file-list {
+            background: #ffffff;
+            color: #2a4a6b;
+            border-radius: 10px;
+            padding: 20px 16px;
+            max-width: 320px;
+            width: 90%;
+            max-height: 60vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid #c9dcec;
+        }
+        .compare-file-list .list-title {
+            font-weight: 700;
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: #2a4a6b;
+        }
+        .compare-file-list .file-option {
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            border: 1px solid #c9dcec;
+            background: #f5faff;
+            text-align: left;
+            color: #2a4a6b;
+            font-family: inherit;
+        }
+        .compare-file-list .file-option:hover {
+            background: #e3f0fa;
+            border-color: #4a8bca;
+        }
+        .compare-file-list .btn-close-mini {
+            background: #eef5fb;
+            color: #4a7aa8;
+            border: 1px solid #c9dcec;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            margin-top: 6px;
+            align-self: center;
+            font-family: inherit;
+        }
+        .compare-file-list .btn-close-mini:hover {
+            background: #dcebf7;
+        }
+
+        .btn-close-mini {
+            background: #8b5a2b;
+            color: #f5e6d3;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 16px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            margin-top: 10px;
+            align-self: center;
+        }
+        .btn-close-mini:hover {
+            background: #a06b3a;
+        }
+
+        .win-file-viewer {
+            background: #fff8f0;
+            color: #3e2f1f;
+            padding: 24px 20px;
+            border-radius: 6px;
+            min-width: 300px;
+            max-width: 90vw;
+            max-height: 60vh;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.7;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid #c4a882;
+        }
+        .win-file-viewer h4 {
+            color: #5b3e24;
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            border-bottom: 2px solid #c4a882;
+            padding-bottom: 8px;
+        }
+        .win-file-viewer .file-content {
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            color: #3e2f1f;
+        }
+        .win-file-viewer .file-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+        }
+        .win-file-viewer .file-content td {
+            padding: 4px 8px;
+            border: 1px solid #c4a882;
+            font-size: 0.78rem;
+        }
+        .win-file-viewer .file-signature {
+            margin-top: 16px;
+            text-align: right;
+            font-style: italic;
+            color: #6b4f2e;
+            font-family: 'Segoe UI', 'PingFang SC', sans-serif;
+        }
+
+        .compare-app-window {
+            background: #f5e6d3;
+            color: #3e2f1f;
+            border-radius: 6px;
+            padding: 20px 18px;
+            min-width: 320px;
+            max-width: 90vw;
+            max-height: 65vh;
+            overflow-y: auto;
+            box-shadow: 0 6px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            border: 1px solid #c4a882;
+        }
+        .compare-app-window .compare-title {
+            text-align: center;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #5b3e24;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #c4a882;
+            padding-bottom: 8px;
+        }
+        .compare-dropzones {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .compare-dropzone {
+            width: 140px;
+            height: 140px;
+            border: 2px dashed #8b5a2b;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            gap: 6px;
+            background: #fff8f0;
+            position: relative;
+        }
+        .compare-dropzone:hover {
+            border-color: #a06b3a;
+            background: #f0e6d8;
+        }
+        .compare-dropzone .plus-sign {
+            font-size: 2.5rem;
+            color: #a0825a;
+            pointer-events: none;
+            line-height: 1;
+        }
+        .compare-dropzone .selected-file {
+            font-size: 0.7rem;
+            color: #3e2f1f;
+            text-align: center;
+            word-break: break-all;
+            pointer-events: none;
+            padding: 4px;
+            background: #e8d5c0;
+            border-radius: 4px;
+            max-width: 90%;
+        }
+        .compare-dropzone .remove-file {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 0.7rem;
+            color: #8b6e4b;
+            cursor: pointer;
+            pointer-events: auto;
+            background: none;
+            border: none;
+        }
+
+        .btn-generic {
+            background: #e8d5c0;
+            color: #3e2f1f;
+            border: 1px solid #8b5a2b;
+            border-radius: var(--radius-sm);
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            letter-spacing: 1px;
+            width: 100%;
+            text-align: center;
+            font-weight: 500;
+        }
+        .btn-generic:hover {
+            background: #d4bfa5;
+            border-color: #a06b3a;
+        }
+        .btn-generic:active {
+            transform: scale(0.98);
+        }
+        .btn-locked {
+            background: rgba(180, 160, 140, 0.6);
+            border-color: #b59a7a;
+            color: #9a8668;
+            cursor: not-allowed;
+        }
+        .btn-locked:hover {
+            background: rgba(180, 160, 140, 0.6);
+            border-color: #b59a7a;
+            color: #9a8668;
+        }
+        .btn-vertical-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 200px;
+        }
+
+        .image-modal-box {
+            background: transparent;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+            max-width: 80vw;
+            max-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+            overflow: visible;
+        }
+        .image-modal-box img {
+            max-width: 70vw;
+            max-height: 70vh;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border: 2px solid rgba(139, 90, 43, 0.3);
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+        @media (max-width: 768px) {
+            .image-modal-box img {
+                max-width: 85vw;
+                max-height: 70vh;
+            }
+        }
+
+        /* =========================================================
+           抽屉柜 UI：白色底 + 木纹 + 三个抽屉 + 黄色圆形把手
+           ========================================================= */
+        .modal-box.drawer-modal-box {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            max-width: none;
+            max-height: none;
+            overflow: visible;
+            box-shadow: none;
+            animation: none;
+        }
+
+        .drawer-cabinet {
+            position: relative;
+            width: 260px;
+            height: 420px;
+            max-width: 88vw;
+            max-height: 78vh;
+            padding: 24px;
+            border-radius: 18px;
+            /* 白色底 + 浅木纹 */
+            background:
+                repeating-linear-gradient(
+                    92deg,
+                    rgba(139, 90, 43, 0.10) 0px,
+                    rgba(139, 90, 43, 0) 2px,
+                    rgba(139, 90, 43, 0.06) 4px,
+                    rgba(139, 90, 43, 0) 8px,
+                    rgba(255, 255, 255, 0.35) 10px,
+                    rgba(255, 255, 255, 0) 14px
+                ),
+                linear-gradient(160deg, #ffffff 0%, #fdf9f2 48%, #f5e9d6 100%);
+            box-shadow:
+                0 26px 60px rgba(0, 0, 0, 0.55),
+                inset 0 2px 0 rgba(255, 255, 255, 0.14),
+                inset 0 -4px 10px rgba(0, 0, 0, 0.5),
+                inset 4px 0 10px rgba(0, 0, 0, 0.22),
+                inset -4px 0 10px rgba(0, 0, 0, 0.22);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            animation: slideUp 0.3s ease;
+        }
+
+        .drawer-slot {
+            flex: 1 1 0;
+            min-height: 0;
+            border-radius: 10px;
+            background:
+                repeating-linear-gradient(
+                    92deg,
+                    rgba(0, 0, 0, 0.08) 0px,
+                    rgba(0, 0, 0, 0) 3px,
+                    rgba(0, 0, 0, 0.05) 6px,
+                    rgba(0, 0, 0, 0) 10px
+                ),
+                linear-gradient(180deg, #b57a44 0%, #8b5a2b 50%, #5c3a1e 100%);
+            box-shadow:
+                0 6px 12px rgba(0, 0, 0, 0.55),
+                inset 0 2px 0 rgba(255, 255, 255, 0.22),
+                inset 0 -3px 8px rgba(0, 0, 0, 0.42),
+                inset 2px 0 4px rgba(0, 0, 0, 0.2),
+                inset -2px 0 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: filter 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+        }
+        .drawer-slot:hover {
+            filter: brightness(1.12);
+        }
+        .drawer-slot:active {
+            transform: translateY(2px);
+            box-shadow:
+                0 2px 5px rgba(0, 0, 0, 0.55),
+                inset 0 2px 0 rgba(255, 255, 255, 0.14),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.5),
+                inset 2px 0 4px rgba(0, 0, 0, 0.25),
+                inset -2px 0 4px rgba(0, 0, 0, 0.25);
+        }
+
+        .drawer-handle {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 28%,
+                        #ffe98a 0%,
+                        #f5c518 42%,
+                        #d4a100 72%,
+                        #9a7300 100%);
+            box-shadow:
+                0 4px 8px rgba(0, 0, 0, 0.6),
+                0 0 10px rgba(245, 197, 24, 0.22),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.32),
+                inset 0 2px 3px rgba(255, 255, 255, 0.78);
+            pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            .drawer-cabinet {
+                width: 200px;
+                height: 340px;
+                padding: 18px;
+                gap: 18px;
+                border-radius: 14px;
+            }
+            .drawer-handle {
+                width: 22px;
+                height: 22px;
+            }
+        }
+
+        /* =========================================================
+           奇怪装饰 UI：9:16 竖向长方形 + 白色木纹 + 窄长滑轨
+           ========================================================= */
+        .modal-box.decoration-modal-box {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            max-width: none;
+            max-height: none;
+            overflow: visible;
+            box-shadow: none;
+            animation: none;
+        }
+
+        .decoration-cabinet {
+            position: relative;
+            width: 270px;
+            height: 480px;
+            max-width: 88vw;
+            max-height: 82vh;
+            border-radius: 18px;
+            /* 白色底 + 浅木纹 */
+            background:
+                repeating-linear-gradient(
+                    92deg,
+                    rgba(139, 90, 43, 0.09) 0px,
+                    rgba(139, 90, 43, 0) 2px,
+                    rgba(139, 90, 43, 0.05) 4px,
+                    rgba(139, 90, 43, 0) 8px,
+                    rgba(255, 255, 255, 0.32) 10px,
+                    rgba(255, 255, 255, 0) 14px
+                ),
+                linear-gradient(160deg, #ffffff 0%, #fdf9f2 50%, #f5e9d6 100%);
+            box-shadow:
+                0 24px 60px rgba(0, 0, 0, 0.5),
+                inset 0 2px 0 rgba(255, 255, 255, 0.95),
+                inset 0 -4px 12px rgba(139, 90, 43, 0.12),
+                inset 4px 0 10px rgba(139, 90, 43, 0.06),
+                inset -4px 0 10px rgba(139, 90, 43, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+        }
+
+        .decoration-tracks {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .decoration-track {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            padding: 4px;
+            border-radius: 10px;
+            transition: background 0.18s ease;
+        }
+        .decoration-track:hover {
+            background: rgba(139, 90, 43, 0.08);
+        }
+
+        .decoration-rail {
+            width: 34px;
+            height: 300px;
+            background: rgba(139, 90, 43, 0.07);
+            border: 2px solid #8b5a2b;
+            border-radius: 17px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+            box-shadow:
+                inset 0 4px 8px rgba(139, 90, 43, 0.18),
+                inset 0 -4px 8px rgba(139, 90, 43, 0.12);
+        }
+
+        .decoration-ball {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #fff, #c9a84c 60%, #8a6d2f);
+            box-shadow:
+                0 3px 8px rgba(0, 0, 0, 0.3),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+            transition: top 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+            cursor: pointer;
+            pointer-events: auto;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .decoration-ball.position-top {
+            top: 4px;
+        }
+        .decoration-ball.position-bottom {
+            top: calc(100% - 30px);
+        }
+
+        .decoration-reward {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            width: 100%;
+            height: 100%;
+            padding: 6px;
+        }
+        .decoration-reward img {
+            max-width: 100%;
+            max-height: 58%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+            border: 1px solid rgba(139, 90, 43, 0.28);
+        }
+
+        @media (max-width: 768px) {
+            .decoration-cabinet {
+                width: 240px;
+                height: 426px;
+                padding: 16px;
+            }
+            .decoration-tracks {
+                gap: 10px;
+            }
+            .decoration-rail {
+                width: 30px;
+                height: 260px;
+                border-radius: 15px;
+            }
+            .decoration-ball {
+                width: 22px;
+                height: 22px;
+            }
+            .decoration-ball.position-bottom {
+                top: calc(100% - 26px);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modal-box { padding: 16px 14px; max-width: 92vw; max-height: 80vh; border-radius: 8px; }
+            .modal-box h3 { font-size: 1rem; margin-bottom: 10px; }
+
+            .win-boot-screen,
+            .win-lock-screen,
+            .win-desktop {
+                width: 92vw;
+                min-width: 0;
+                height: auto;
+                min-height: 360px;
+                max-height: 76vh;
+                border-radius: 14px;
+            }
+            .win-lock-screen {
+                padding: 26px 18px;
+                gap: 12px;
+            }
+            .win-lock-avatar {
+                width: 102px;
+                height: 102px;
+            }
+            .win-lock-avatar svg {
+                width: 60px;
+                height: 60px;
+            }
+            .win-lock-hint {
+                font-size: 0.8rem;
+            }
+            .win-lock-input,
+            .win-lock-arrow {
+                height: 44px;
+            }
+            .win-lock-arrow {
+                flex: 0 0 44px;
+                width: 44px;
+                font-size: 1.2rem;
+            }
+            .win-lock-input {
+                font-size: 0.95rem;
+                letter-spacing: 4px;
+            }
+            .win-desktop {
+                min-height: 340px;
+            }
+            .win-desktop-icons {
+                padding: 4px 8px;
+            }
+            .win-desktop-icon {
+                width: 60px;
+                padding: 5px 2px;
+                gap: 3px;
+            }
+            .win-desktop-icon .icon-img {
+                width: 34px;
+                height: 34px;
+                font-size: 1.1rem;
+            }
+            .win-desktop-icon .icon-name {
+                font-size: 0.6rem;
+            }
+            .win-desktop-taskbar {
+                height: 40px;
+            }
+            .win-subwindows {
+                top: 22px;
+                bottom: 40px;
+            }
+            .win-subwindow-body {
+                padding: 16px 12px 12px;
+            }
+            .win-subwindow .compare-dropzone {
+                width: 90px;
+                height: 90px;
+            }
+            .win-subwindow .compare-dropzone .plus-sign {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-stage">
+        <div id="bg-container">
+            <img id="bg-image" src="pic10.jpg" alt="房间背景" draggable="false" />
+        </div>
+
+        <button class="hotspot" id="hotspot-decoration" data-x="835" data-y="500" aria-label="奇怪装饰">
+            <span class="hotspot-dot"></span>
+            <span class="hotspot-label">奇怪装饰</span>
+        </button>
+        <button class="hotspot" id="hotspot-poster" data-x="228" data-y="315" aria-label="海报">
+            <span class="hotspot-dot"></span>
+            <span class="hotspot-label">海报</span>
+        </button>
+        <button class="hotspot" id="hotspot-computer" data-x="393" data-y="533" aria-label="电脑">
+            <span class="hotspot-dot"></span>
+            <span class="hotspot-label">电脑</span>
+        </button>
+        <button class="hotspot" id="hotspot-drawer" data-x="480" data-y="764" aria-label="抽屉柜">
+            <span class="hotspot-dot"></span>
+            <span class="hotspot-label">抽屉柜</span>
+        </button>
+        <button class="hotspot" id="hotspot-figure" data-x="394" data-y="354" aria-label="手办">
+            <span class="hotspot-dot"></span>
+            <span class="hotspot-label">手办</span>
+        </button>
+        <button class="hotspot" id="hotspot-pocket" data-x="164" data-y="665" aria-label="衣服口袋">
+            <span class="hotspot-dot"></span>
+            <span class="hotspot-label">衣服口袋</span>
+        </button>
+    </div>
+
+    <div id="corner-buttons">
+        <button class="corner-btn evidence-btn" id="btn-toggle-evidence" aria-label="证据栏">
+            <span class="btn-icon">🔍</span>
+            <span>证据</span>
+        </button>
+        <button class="corner-btn backpack-btn" id="btn-toggle-backpack" aria-label="背包栏">
+            <span class="btn-icon">🎒</span>
+            <span>背包</span>
+        </button>
+    </div>
+
+    <div id="evidence-panel">
+        <div class="panel-header">
+            <span>📋 证据栏</span>
+            <span style="font-size:0.8rem;color:#8b6e4b;">点击外部关闭</span>
+        </div>
+        <div class="evidence-list" id="evidence-list">
+            <div class="evidence-empty" id="evidence-empty">暂无证据</div>
+        </div>
+        <div class="panel-footer">
+            <div id="evidence-counter"><span class="count-num" id="evidence-count-num">0</span> / 4</div>
+            <button id="btn-return-hall" onclick="goToPage3()">返回大厅</button>
+            <div id="detective-code">侦探助手录入码：bxfr3697</div>
+        </div>
+    </div>
+
+    <div id="backpack-panel">
+        <div class="panel-header">
+            <span>🎒 背包</span>
+            <span style="font-size:0.8rem;color:#8b6e4b;">点击物品选中</span>
+        </div>
+        <div class="backpack-list" id="backpack-list">
+            <div class="backpack-empty" id="backpack-empty">背包空空如也</div>
+        </div>
+    </div>
+
+    <div id="modal-container"></div>
+    <div id="toast-container"></div>
+
+    <script>
+        const state = {
+            evidenceCollected: new Set(),
+            backpackItems: [],
+            selectedBackpackItem: null,
+            puzzlePositions: ['bottom', 'bottom', 'bottom', 'bottom'],
+            puzzleUnlocked: false,
+            computerBooted: false,
+            computerPasswordCorrect: false,
+            computerLoggedIn: false,
+            desktopFiles: [{ id: 'file_core', name: '考拉公司核心机密', type: 'word', icon: '📄' }],
+            u1Inserted: false,
+            u2Inserted: false,
+            drawer1Opened: false,
+            drawer2Opened: false,
+            drawer3Unlocked: false,
+            drawer3Opened: false,
+            leftPocketOpened: false,
+            rightPocketRevealed: false,
+            compareFile1: null,
+            compareFile2: null,
+            compareDone: false,
+            compareResultCollected: false,
+            posterShown: false,
+            figureShown: false,
+        };
+
+        const EVIDENCE_ZHENZHI = 'evidence_zhenzhi';
+        const EVIDENCE_CORE_DATA = 'evidence_core_data';
+        const EVIDENCE_COMPARE_RESULT = 'evidence_compare_result';
+        const EVIDENCE_PHOTO = 'evidence_photo';
+        const TOTAL_EVIDENCE = 4;
+
+        const bgImage = document.getElementById('bg-image');
+        const bgContainer = document.getElementById('bg-container');
+        const hotspots = document.querySelectorAll('.hotspot');
+        const modalContainer = document.getElementById('modal-container');
+        const toastContainer = document.getElementById('toast-container');
+        const evidencePanel = document.getElementById('evidence-panel');
+        const backpackPanel = document.getElementById('backpack-panel');
+        const evidenceList = document.getElementById('evidence-list');
+        const evidenceEmpty = document.getElementById('evidence-empty');
+        const evidenceCountNum = document.getElementById('evidence-count-num');
+        const btnReturnHall = document.getElementById('btn-return-hall');
+        const detectiveCode = document.getElementById('detective-code');
+        const backpackList = document.getElementById('backpack-list');
+        const backpackEmpty = document.getElementById('backpack-empty');
+        const btnToggleEvidence = document.getElementById('btn-toggle-evidence');
+        const btnToggleBackpack = document.getElementById('btn-toggle-backpack');
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            toastContainer.appendChild(toast);
+            setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 1900);
+        }
+
+        function closeAllModals() { modalContainer.innerHTML = ''; }
+
+        function openModal(html, options = {}) {
+            closeAllModals();
+            const overlay = document.createElement('div');
+            overlay.className = 'modal-overlay';
+            overlay.setAttribute('data-modal-overlay', 'true');
+            if (options.zIndex) overlay.style.zIndex = options.zIndex;
+            const box = document.createElement('div');
+            box.className = 'modal-box';
+            if (options.customClass) box.classList.add(options.customClass);
+            box.innerHTML = html;
+            if (options.closeOnOverlay !== false) {
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(overlay); });
+            }
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            overlay.appendChild(box);
+            modalContainer.appendChild(overlay);
+            return { overlay, box };
+        }
+
+        function closeModal(overlay) {
+            if (!overlay) return;
+            overlay.classList.add('closing');
+            setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 200);
+        }
+
+        function collectEvidence(evidenceId, displayText) {
+            if (state.evidenceCollected.has(evidenceId)) return;
+            state.evidenceCollected.add(evidenceId);
+            updateEvidencePanel();
+            showToast('📌 已收录证据：' + displayText);
+        }
+
+        function updateEvidencePanel() {
+            const count = state.evidenceCollected.size;
+            evidenceCountNum.textContent = count;
+            if (count === 0) {
+                evidenceEmpty.style.display = 'block';
+                evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+                btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none';
+                return;
+            }
+            evidenceEmpty.style.display = 'none';
+            evidenceList.querySelectorAll('.evidence-item').forEach(el => el.remove());
+            const evidenceDisplayMap = {
+                [EVIDENCE_ZHENZHI]: '一个刻着赵的镇纸',
+                [EVIDENCE_CORE_DATA]: '死者公司核心数据',
+                [EVIDENCE_COMPARE_RESULT]: '大体内容相同，核心数据差异大的两份合作方案',
+                [EVIDENCE_PHOTO]: '涂黑一半的合照',
+            };
+            state.evidenceCollected.forEach(eid => {
+                const item = document.createElement('div');
+                item.className = 'evidence-item';
+                item.textContent = evidenceDisplayMap[eid] || eid;
+                evidenceList.appendChild(item);
+            });
+            if (count >= TOTAL_EVIDENCE) {
+                btnReturnHall.style.display = 'block';
+                detectiveCode.style.display = 'block';
+            } else {
+                btnReturnHall.style.display = 'none';
+                detectiveCode.style.display = 'none';
+            }
+        }
+
+        function toggleEvidencePanel(show) {
+            if (show === undefined) show = evidencePanel.style.display !== 'flex';
+            evidencePanel.style.display = show ? 'flex' : 'none';
+        }
+
+        function toggleBackpackPanel(show) {
+            if (show === undefined) show = backpackPanel.style.display !== 'flex';
+            backpackPanel.style.display = show ? 'flex' : 'none';
+            if (show) updateBackpackPanel();
+        }
+
+        function addToBackpack(itemId, itemName, itemIcon) {
+            if (state.backpackItems.some(item => item.id === itemId)) return;
+            state.backpackItems.push({ id: itemId, name: itemName, icon: itemIcon || '📦' });
+            updateBackpackPanel();
+            showToast('🎒 获得：' + itemName);
+        }
+
+        function removeFromBackpack(itemId) {
+            const idx = state.backpackItems.findIndex(item => item.id === itemId);
+            if (idx > -1) {
+                state.backpackItems.splice(idx, 1);
+                if (state.selectedBackpackItem === itemId) state.selectedBackpackItem = null;
+                updateBackpackPanel();
+            }
+        }
+
+        function updateBackpackPanel() {
+            backpackList.querySelectorAll('.backpack-item').forEach(el => el.remove());
+            if (state.backpackItems.length === 0) {
+                backpackEmpty.style.display = 'block';
+                return;
+            }
+            backpackEmpty.style.display = 'none';
+            state.backpackItems.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'backpack-item';
+                if (state.selectedBackpackItem === item.id) el.classList.add('selected');
+                el.innerHTML = `<span>${item.icon}</span><span>${item.name}</span>`;
+                el.addEventListener('click', (e) => { e.stopPropagation(); selectBackpackItem(item.id); });
+                backpackList.appendChild(el);
+            });
+        }
+
+        function selectBackpackItem(itemId) {
+            if (state.selectedBackpackItem === itemId) state.selectedBackpackItem = null;
+            else {
+                const item = state.backpackItems.find(i => i.id === itemId);
+                if (item) { state.selectedBackpackItem = itemId; showToast('已选中：' + item.name); }
+            }
+            updateBackpackPanel();
+        }
+
+        function getBackpackItem(itemId) { return state.backpackItems.find(i => i.id === itemId); }
+
+        document.addEventListener('click', (e) => {
+            if (evidencePanel.style.display === 'flex' && !evidencePanel.contains(e.target) && e.target !== btnToggleEvidence && !btnToggleEvidence.contains(e.target)) toggleEvidencePanel(false);
+            if (backpackPanel.style.display === 'flex' && !backpackPanel.contains(e.target) && e.target !== btnToggleBackpack && !btnToggleBackpack.contains(e.target)) toggleBackpackPanel(false);
+        });
+
+        btnToggleEvidence.addEventListener('click', (e) => { e.stopPropagation(); toggleEvidencePanel(); });
+        btnToggleBackpack.addEventListener('click', (e) => { e.stopPropagation(); toggleBackpackPanel(); });
+
+        function positionHotspots() {
+            const imgRect = bgImage.getBoundingClientRect();
+            const containerRect = bgContainer.getBoundingClientRect();
+            hotspots.forEach(hotspot => {
+                const x = parseFloat(hotspot.dataset.x);
+                const y = parseFloat(hotspot.dataset.y);
+                const pctX = x / 999;
+                const pctY = y / 999;
+                const imgDisplayLeft = imgRect.left - containerRect.left;
+                const imgDisplayTop = imgRect.top - containerRect.top;
+                const imgDisplayWidth = imgRect.width;
+                const imgDisplayHeight = imgRect.height;
+                const hotspotX = imgDisplayLeft + pctX * imgDisplayWidth;
+                const hotspotY = imgDisplayTop + pctY * imgDisplayHeight;
+                hotspot.style.left = (hotspotX / containerRect.width * 100) + '%';
+                hotspot.style.top = (hotspotY / containerRect.height * 100) + '%';
+            });
+        }
+
+        document.getElementById('hotspot-decoration').addEventListener('click', () => openDecorationPuzzle());
+        document.getElementById('hotspot-poster').addEventListener('click', () => openPoster());
+        document.getElementById('hotspot-computer').addEventListener('click', () => openComputer());
+        document.getElementById('hotspot-drawer').addEventListener('click', () => openDrawer());
+        document.getElementById('hotspot-figure').addEventListener('click', () => openFigure());
+        document.getElementById('hotspot-pocket').addEventListener('click', () => openPocket());
+
+        /* =========================================================
+           奇怪装饰：9:16 竖向长方形 + 白色木纹 + 窄长滑轨
+           ========================================================= */
+        function openDecorationPuzzle() {
+            const buildRewardHtml = () => `
+                <div class="decoration-reward">
+                    <img src="pic17.jpg" alt="一个刻着赵的镇纸" draggable="false" />
+                    <div class="reward-text">一个刻着赵的镇纸</div>
+                    <button class="btn-confirm-reward" id="btn-collect-zhenzhi">收集证据</button>
+                </div>
+            `;
+            const buildTracksHtml = () => `
+                <div class="decoration-tracks" id="decoration-tracks">
+                    ${state.puzzlePositions.map((pos, idx) => `
+                        <div class="decoration-track" data-puzzle-index="${idx}">
+                            <div class="decoration-rail">
+                                <div class="decoration-ball ${pos === 'top' ? 'position-top' : 'position-bottom'}" data-puzzle-ball="${idx}"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+
+            const innerHtml = state.puzzleUnlocked ? buildRewardHtml() : buildTracksHtml();
+            const html = `<div class="decoration-cabinet" id="decoration-cabinet">${innerHtml}</div>`;
+
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'decoration-modal-box' });
+            const cabinet = box.querySelector('#decoration-cabinet');
+
+            function bindTracks() {
+                cabinet.querySelectorAll('.decoration-track').forEach(track => {
+                    track.addEventListener('click', () => {
+                        const idx = parseInt(track.dataset.puzzleIndex);
+                        togglePuzzleBall(idx, box);
+                    });
+                });
+                cabinet.querySelectorAll('.decoration-ball').forEach(ball => {
+                    ball.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const idx = parseInt(ball.dataset.puzzleBall);
+                        togglePuzzleBall(idx, box);
+                    });
+                });
+            }
+
+            function bindReward() {
+                const collectBtn = cabinet.querySelector('#btn-collect-zhenzhi');
+                if (collectBtn) collectBtn.addEventListener('click', () => {
+                    if (!state.evidenceCollected.has(EVIDENCE_ZHENZHI)) {
+                        collectEvidence(EVIDENCE_ZHENZHI, '一个刻着赵的镇纸');
+                    }
+                    closeModal(overlay);
+                });
+            }
+
+            function showReward() {
+                cabinet.innerHTML = buildRewardHtml();
+                bindReward();
+            }
+
+            box._showReward = showReward;
+
+            if (state.puzzleUnlocked) {
+                bindReward();
+            } else {
+                bindTracks();
+            }
+        }
+
+        function togglePuzzleBall(idx, box) {
+            if (state.puzzleUnlocked) return;
+            const newPos = state.puzzlePositions[idx] === 'top' ? 'bottom' : 'top';
+            state.puzzlePositions[idx] = newPos;
+            const ball = box.querySelector(`.decoration-ball[data-puzzle-ball="${idx}"]`);
+            if (ball) {
+                ball.classList.remove('position-top', 'position-bottom');
+                ball.classList.add(newPos === 'top' ? 'position-top' : 'position-bottom');
+            }
+            checkPuzzleUnlock(box);
+        }
+
+        function checkPuzzleUnlock(box) {
+            const target = ['top', 'top', 'bottom', 'top'];
+            const isUnlocked = state.puzzlePositions.every((pos, i) => pos === target[i]);
+            if (isUnlocked && !state.puzzleUnlocked) {
+                state.puzzleUnlocked = true;
+                if (box._showReward) box._showReward();
+            }
+        }
+
+        function openPoster() {
+            const html = `
+                <div class="modal-box image-modal-box" style="position:relative;display:flex;align-items:center;justify-content:center;">
+                    <img src="pic13.jpg" alt="海报" draggable="false" />
+                    <button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+            `;
+            const { overlay, box } = openModal(html, { customClass: 'image-modal-box', closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+        }
+
+        function openFigure() {
+            const html = `
+                <div class="modal-box image-modal-box" style="position:relative;display:flex;align-items:center;justify-content:center;">
+                    <img src="pic12.jpg" alt="手办" draggable="false" />
+                    <button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+            `;
+            const { overlay, box } = openModal(html, { customClass: 'image-modal-box', closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+        }
+
+        function openComputer() {
+            if (!state.computerBooted) showComputerBoot();
+            else if (!state.computerLoggedIn) showComputerLogin();
+            else showComputerDesktop();
+        }
+
+        function showComputerBoot() {
+            const html = `
+                <div class="win-boot-screen">
+                    <div class="win-boot-logo">🪟</div>
+                    <div class="win-boot-text">正在启动 Windows...</div>
+                    <div class="win-boot-text win-boot-sub">正在加载系统组件</div>
+                    <button class="modal-close-btn">✕</button>
+                </div>
+            `;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'computer-modal-box' });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            setTimeout(() => { if (overlay.parentNode) { state.computerBooted = true; closeModal(overlay); showComputerLogin(); } }, 1800);
+        }
+
+        function showComputerLogin() {
+            const html = `
+                <div class="win-lock-screen">
+                    <button class="modal-close-btn" aria-label="关闭">✕</button>
+                    <div class="win-lock-avatar">
+                        <svg viewBox="0 0 100 100" aria-hidden="true">
+                            <circle cx="50" cy="32" r="17.5" fill="#5b8ec2"></circle>
+                            <path d="M50 55c-19 0-32.5 11.5-32.5 27v9.5h65V82c0-15.5-13.5-27-32.5-27z" fill="#5b8ec2"></path>
+                        </svg>
+                    </div>
+                    <div class="win-lock-hint">请输入密码</div>
+                    <div class="win-lock-input-row">
+                        <input type="password" id="win-password-input" class="win-lock-input" placeholder="••••" maxlength="10" autofocus />
+                        <button class="win-lock-arrow" id="win-login-btn" aria-label="进入">→</button>
+                    </div>
+                    <div class="win-login-error" id="win-login-error"></div>
+                </div>
+            `;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'computer-modal-box' });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            const input = box.querySelector('#win-password-input');
+            const btn = box.querySelector('#win-login-btn');
+            const error = box.querySelector('#win-login-error');
+            function tryLogin() {
+                if (input.value.trim() === '4129') { state.computerLoggedIn = true; closeModal(overlay); showComputerDesktop(); }
+                else { error.textContent = '密码错误，请重试'; input.value = ''; input.focus(); }
+            }
+            btn.addEventListener('click', tryLogin);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+            setTimeout(() => input.focus(), 200);
+        }
+
+        function showComputerDesktop() {
+            const html = `
+                <div class="win-desktop" id="win-desktop">
+                    <div class="win-desktop-topbar">Windows 10</div>
+                    <div class="win-desktop-icons" id="win-desktop-icons">
+                        <div class="win-desktop-icon" data-file-id="file_core" title="考拉公司核心机密">
+                            <span class="icon-img">📄</span>
+                            <span class="icon-name word-file">考拉公司核心机密</span>
+                        </div>
+                        <div class="win-desktop-icon" data-app="compare" title="文件对比助手">
+                            <span class="icon-img">🔍</span>
+                            <span class="icon-name">文件对比助手</span>
+                        </div>
+                        ${state.u1Inserted ? `<div class="win-desktop-icon" data-file-id="file_u1" title="考拉集团与赵氏集团合作方案"><span class="icon-img">📄</span><span class="icon-name word-file">考拉集团与赵氏集团合作方案</span></div>` : ''}
+                        ${state.u2Inserted ? `<div class="win-desktop-icon" data-file-id="file_u2" title="考拉集团与赵氏集团合作方案（1）"><span class="icon-img">📄</span><span class="icon-name word-file">考拉集团与赵氏集团合作方案（1）</span></div>` : ''}
+                    </div>
+                    <div class="win-desktop-tip">从背包选择U盘后点击桌面可插入</div>
+                    <div class="win-desktop-taskbar">
+                        <div class="win-taskbar-start"><span class="start-icon">⊞</span><span>开始</span></div>
+                    </div>
+                    <div class="win-subwindows" id="win-subwindows"></div>
+                    <button class="modal-close-btn">✕</button>
+                </div>
+            `;
+            const { overlay, box } = openModal(html, { closeOnOverlay: false, customClass: 'computer-modal-box' });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+            const desktop = box.querySelector('#win-desktop');
+            desktop.addEventListener('click', (e) => {
+                if (e.target.closest('.win-desktop-icon')) return;
+                if (e.target.closest('.win-subwindow')) return;
+                if (e.target.closest('.win-desktop-taskbar')) return;
+                if (state.selectedBackpackItem === 'u1' && !state.u1Inserted) {
+                    state.u1Inserted = true;
+                    state.desktopFiles.push({ id: 'file_u1', name: '考拉集团与赵氏集团合作方案', type: 'word', icon: '📄' });
+                    state.selectedBackpackItem = null;
+                    updateBackpackPanel();
+                    showToast('💾 U盘1已插入');
+                    closeModal(overlay);
+                    showComputerDesktop();
+                    return;
+                }
+                if (state.selectedBackpackItem === 'u2' && !state.u2Inserted) {
+                    state.u2Inserted = true;
+                    state.desktopFiles.push({ id: 'file_u2', name: '考拉集团与赵氏集团合作方案（1）', type: 'word', icon: '📄' });
+                    state.selectedBackpackItem = null;
+                    updateBackpackPanel();
+                    showToast('💾 U盘2已插入');
+                    closeModal(overlay);
+                    showComputerDesktop();
+                    return;
+                }
+                if (state.selectedBackpackItem) showToast('该物品无法在这里使用');
+            });
+            box.querySelectorAll('.win-desktop-icon').forEach(icon => {
+                icon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const fileId = icon.dataset.fileId;
+                    const appName = icon.dataset.app;
+                    if (appName === 'compare') openCompareApp();
+                    else if (fileId) openFileViewer(fileId);
+                });
+            });
+        }
+
+        function removeAllSubWindows() {
+            document.querySelectorAll('.win-subwindow').forEach(el => el.remove());
+        }
+
+        function createSubWindow(contentHtml) {
+            removeAllSubWindows();
+            const desktop = document.getElementById('win-desktop');
+            const container = desktop ? desktop.querySelector('#win-subwindows') : null;
+            if (!container) return null;
+
+            const rect = container.getBoundingClientRect();
+            const margin = 10;
+            const iconArea = Math.min(110, rect.width * 0.28);
+
+            let size = Math.min(
+                rect.height - margin * 2,
+                rect.width - iconArea - margin
+            );
+            if (size < 150) size = 150;
+
+            const win = document.createElement('div');
+            win.className = 'win-subwindow';
+            win.style.width = size + 'px';
+            win.style.height = size + 'px';
+            win.style.right = margin + 'px';
+            win.style.top = '50%';
+            win.style.marginTop = (-size / 2) + 'px';
+
+            win.innerHTML = `
+                <button class="win-subwindow-close" aria-label="关闭">✕</button>
+                <div class="win-subwindow-body">${contentHtml}</div>
+            `;
+            win.querySelector('.win-subwindow-close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                win.remove();
+            });
+            container.appendChild(win);
+            return win;
+        }
+
+        function openFileViewer(fileId) {
+            const file = state.desktopFiles.find(f => f.id === fileId);
+            if (!file) return;
+
+            if (fileId === 'file_core') {
+                const contentHtml = `
+                    <h4 class="subwindow-title">📄 考拉公司核心机密</h4>
+                    <div class="file-content">
+                        <div style="text-align:center;font-weight:700;margin-bottom:6px;font-size:0.82rem;">考拉集团核心数据</div>
+                        <div style="text-align:center;color:#b0453c;font-weight:600;margin-bottom:10px;font-size:0.72rem;">（不可外传！！！）</div>
+                        <table>
+                            <tr><td><strong>补给点</strong></td><td><strong>核心物资</strong></td></tr>
+                            <tr><td>麦当劳</td><td>枫糖松饼猪柳蛋</td></tr>
+                            <tr><td>萨莉亚</td><td>芝士玉米汤</td></tr>
+                            <tr><td>龙哥小火锅</td><td>烤肠</td></tr>
+                            <tr><td>必胜客</td><td>美洲白虾披萨</td></tr>
+                            <tr><td>达美乐</td><td>摩洛哥披萨</td></tr>
+                            <tr><td>胖哥俩</td><td>鸡爪煲</td></tr>
+                            <tr><td>西塔老太太</td><td>土豆泥和海带汤</td></tr>
+                            <tr><td>海底捞</td><td>新的儿童番茄锅底</td></tr>
+                            <tr><td>谷连天</td><td>山菌包</td></tr>
+                            <tr><td>喜茶</td><td>三倍厚抹</td></tr>
+                            <tr><td>额娘春饼</td><td>炒合菜</td></tr>
+                            <tr><td>半天妖</td><td>酱香味</td></tr>
+                            <tr><td>米村拌饭</td><td>石锅鸡蛋</td></tr>
+                        </table>
+                        <div class="file-signature">董事长签字：舒代华</div>
+                    </div>
+                `;
+                createSubWindow(contentHtml);
+                collectEvidence(EVIDENCE_CORE_DATA, '死者公司核心数据');
+            } else {
+                const contentHtml = `
+                    <h4 class="subwindow-title">📄 ${file.name}</h4>
+                    <div style="text-align:center;padding:24px 14px;">
+                        <div style="font-size:2.2rem;margin-bottom:12px;">📄</div>
+                        <p style="font-size:0.85rem;margin-bottom:10px;color:#2a4a6b;">文件内容显示为乱码，需要对比分析。</p>
+                        <p style="color:#6a8daf;font-size:0.74rem;">（请使用“文件对比助手”进行对比）</p>
+                    </div>
+                `;
+                createSubWindow(contentHtml);
+            }
+        }
+
+        function openCompareApp() {
+            const desktop = document.getElementById('win-desktop');
+            const container = desktop ? desktop.querySelector('#win-subwindows') : null;
+            if (!container) return;
+
+            removeAllSubWindows();
+            const rect = container.getBoundingClientRect();
+            const margin = 10;
+            const iconArea = Math.min(110, rect.width * 0.28);
+
+            let size = Math.min(
+                rect.height - margin * 2,
+                rect.width - iconArea - margin
+            );
+            if (size < 150) size = 150;
+
+            const win = document.createElement('div');
+            win.className = 'win-subwindow';
+            win.style.width = size + 'px';
+            win.style.height = size + 'px';
+            win.style.right = margin + 'px';
+            win.style.top = '50%';
+            win.style.marginTop = (-size / 2) + 'px';
+
+            win.innerHTML = `
+                <button class="win-subwindow-close" aria-label="关闭">✕</button>
+                <div class="win-subwindow-body">
+                    <div class="compare-title">🔍 文件对比助手</div>
+                    <div class="compare-dropzones">
+                        <div class="compare-dropzone" id="compare-zone-1">
+                            <span class="plus-sign">+</span>
+                            <span class="selected-file" id="compare-file1-display">选择文件</span>
+                            <button class="remove-file" id="compare-remove-1" style="display:none;">✕</button>
+                        </div>
+                        <div class="compare-dropzone" id="compare-zone-2">
+                            <span class="plus-sign">+</span>
+                            <span class="selected-file" id="compare-file2-display">选择文件</span>
+                            <button class="remove-file" id="compare-remove-2" style="display:none;">✕</button>
+                        </div>
+                    </div>
+                    <div id="compare-result-area"></div>
+                    <button class="btn-compare-submit" id="btn-compare-submit" disabled>对比</button>
+                </div>
+            `;
+            win.querySelector('.win-subwindow-close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                win.remove();
+            });
+            container.appendChild(win);
+
+            const zone1 = win.querySelector('#compare-zone-1');
+            const zone2 = win.querySelector('#compare-zone-2');
+            const display1 = win.querySelector('#compare-file1-display');
+            const display2 = win.querySelector('#compare-file2-display');
+            const submitBtn = win.querySelector('#btn-compare-submit');
+            const resultArea = win.querySelector('#compare-result-area');
+            const remove1 = win.querySelector('#compare-remove-1');
+            const remove2 = win.querySelector('#compare-remove-2');
+
+            function updateCompareUI() {
+                if (state.compareFile1) { display1.textContent = state.compareFile1.name; remove1.style.display = 'block'; }
+                else { display1.textContent = '选择文件'; remove1.style.display = 'none'; }
+                if (state.compareFile2) { display2.textContent = state.compareFile2.name; remove2.style.display = 'block'; }
+                else { display2.textContent = '选择文件'; remove2.style.display = 'none'; }
+                submitBtn.disabled = !(state.compareFile1 && state.compareFile2);
+            }
+
+            function showFileList(zoneNumber) {
+                const availableFiles = state.desktopFiles;
+                const listHtml = `
+                    <div class="compare-file-list-overlay" id="compare-file-list-overlay">
+                        <div class="compare-file-list">
+                            <div class="list-title">选择文件</div>
+                            ${availableFiles.map(f => `<button class="file-option" data-file-id="${f.id}">${f.icon} ${f.name}</button>`).join('')}
+                            <button class="btn-close-mini" id="btn-cancel-file-list">取消</button>
+                        </div>
+                    </div>
+                `;
+                const overlayEl = document.createElement('div');
+                overlayEl.innerHTML = listHtml;
+                document.body.appendChild(overlayEl);
+                const listOverlay = overlayEl.querySelector('#compare-file-list-overlay');
+                listOverlay.addEventListener('click', (e) => { if (e.target === listOverlay) overlayEl.remove(); });
+                overlayEl.querySelectorAll('.file-option').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const fid = btn.dataset.fileId;
+                        const file = state.desktopFiles.find(f => f.id === fid);
+                        if (file) {
+                            if (zoneNumber === 1) state.compareFile1 = file;
+                            else state.compareFile2 = file;
+                            updateCompareUI();
+                        }
+                        overlayEl.remove();
+                    });
+                });
+                overlayEl.querySelector('#btn-cancel-file-list').addEventListener('click', () => overlayEl.remove());
+            }
+
+            zone1.addEventListener('click', () => showFileList(1));
+            zone2.addEventListener('click', () => showFileList(2));
+            remove1.addEventListener('click', (e) => { e.stopPropagation(); state.compareFile1 = null; updateCompareUI(); resultArea.innerHTML = ''; });
+            remove2.addEventListener('click', (e) => { e.stopPropagation(); state.compareFile2 = null; updateCompareUI(); resultArea.innerHTML = ''; });
+
+            submitBtn.addEventListener('click', () => {
+                if (!state.compareFile1 || !state.compareFile2) return;
+                const id1 = state.compareFile1.id;
+                const id2 = state.compareFile2.id;
+                const isCorrectPair = (id1 === 'file_u1' && id2 === 'file_u2') || (id1 === 'file_u2' && id2 === 'file_u1');
+                if (isCorrectPair) {
+                    resultArea.innerHTML = `
+                        <div class="compare-result">对比成功：大体内容相同，核心数据差异大</div>
+                        <button class="btn-confirm-compare-result" id="btn-collect-compare-result">收录证据</button>
+                    `;
+                    const collectBtn = win.querySelector('#btn-collect-compare-result');
+                    if (collectBtn) collectBtn.addEventListener('click', () => {
+                        collectEvidence(EVIDENCE_COMPARE_RESULT, '大体内容相同，核心数据差异大的两份合作方案');
+                        resultArea.innerHTML = '<div style="text-align:center;color:#4a6b3a;padding:8px;font-size:0.82rem;">✅ 已收录</div>';
+                    });
+                } else {
+                    resultArea.innerHTML = '<div style="text-align:center;color:#6a8daf;padding:8px;font-size:0.82rem;">无明显关联，无法对比</div>';
+                }
+            });
+            updateCompareUI();
+        }
+
+        /* =========================================================
+           抽屉柜：白色底 + 木纹 + 三个抽屉面板 + 黄色圆形把手
+           ========================================================= */
+        function openDrawer() {
+            const html = `
+                <div class="drawer-cabinet">
+                    <div class="drawer-slot" data-drawer="1">
+                        <div class="drawer-handle"></div>
+                    </div>
+                    <div class="drawer-slot" data-drawer="2">
+                        <div class="drawer-handle"></div>
+                    </div>
+                    <div class="drawer-slot" data-drawer="3">
+                        <div class="drawer-handle"></div>
+                    </div>
+                </div>
+            `;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true, customClass: 'drawer-modal-box' });
+
+            box.querySelectorAll('.drawer-slot').forEach(slot => {
+                const idx = parseInt(slot.dataset.drawer);
+                slot.addEventListener('click', () => {
+                    if (idx === 1) {
+                        state.drawer1Opened = true;
+                        const imgHtml = `
+                            <div class="modal-box image-modal-box" style="position:relative;display:flex;align-items:center;justify-content:center;">
+                                <img src="pic11.jpg" alt="第一层抽屉" draggable="false" />
+                                <button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+                            </div>
+                        `;
+                        const { overlay: imgOverlay, box: imgBox } = openModal(imgHtml, { customClass: 'image-modal-box', closeOnOverlay: true });
+                        const imgClose = imgBox.querySelector('.modal-close-btn');
+                        if (imgClose) imgClose.addEventListener('click', () => closeModal(imgOverlay));
+                        collectEvidence(EVIDENCE_PHOTO, '涂黑一半的合照');
+                    } else if (idx === 2) {
+                        state.drawer2Opened = true;
+                        addToBackpack('pencil', '铅笔', '✏️');
+                        const pencilHtml = `
+                            <h3>✏️ 第二层</h3>
+                            <div style="text-align:center;padding:20px;">
+                                <div style="font-size:3rem;margin-bottom:12px;">✏️</div>
+                                <p>发现一根铅笔！已收入背包。</p>
+                            </div>
+                            <button class="modal-close-btn">✕</button>
+                        `;
+                        const { overlay: pOverlay, box: pBox } = openModal(pencilHtml, { closeOnOverlay: true });
+                        const pClose = pBox.querySelector('.modal-close-btn');
+                        if (pClose) pClose.addEventListener('click', () => closeModal(pOverlay));
+                    } else if (idx === 3) {
+                        if (state.drawer3Unlocked) {
+                            state.drawer3Opened = true;
+                            const imgHtml = `
+                                <div class="modal-box image-modal-box" style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                                    <img src="pic14.jpg" alt="第三层抽屉" draggable="false" style="max-width:60vw;max-height:45vh;" />
+                                    <div style="color:#3e2f1f;font-size:0.9rem;margin-top:8px;text-align:center;">两个一模一样的U盘</div>
+                                    <button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+                                </div>
+                            `;
+                            const { overlay: imgOverlay, box: imgBox } = openModal(imgHtml, { customClass: 'image-modal-box', closeOnOverlay: true });
+                            const imgClose = imgBox.querySelector('.modal-close-btn');
+                            if (imgClose) imgClose.addEventListener('click', () => closeModal(imgOverlay));
+                            if (!getBackpackItem('u1')) addToBackpack('u1', 'U盘1', '💾');
+                            if (!getBackpackItem('u2')) addToBackpack('u2', 'U盘2', '💾');
+                        } else {
+                            if (state.selectedBackpackItem === 'key') {
+                                state.drawer3Unlocked = true;
+                                state.selectedBackpackItem = null;
+                                updateBackpackPanel();
+                                removeFromBackpack('key');
+                                showToast('🔓 第三层已解锁！');
+                                closeModal(overlay);
+                                openDrawer();
+                            } else {
+                                showToast('锁住了');
+                            }
+                        }
+                    }
+                });
+            });
+        }
+
+        function openPocket() {
+            const html = `
+                <h3>👔 衣服口袋</h3>
+                <p style="text-align:center;font-size:0.85rem;color:#6b4f2e;margin-bottom:12px;">选择口袋</p>
+                <div class="btn-vertical-group">
+                    <button class="btn-generic" id="btn-pocket-left">👈 左口袋</button>
+                    <button class="btn-generic" id="btn-pocket-right">👉 右口袋</button>
+                </div>
+                <button class="modal-close-btn">✕</button>
+            `;
+            const { overlay, box } = openModal(html, { closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+
+            box.querySelector('#btn-pocket-left').addEventListener('click', () => {
+                if (!state.leftPocketOpened) {
+                    state.leftPocketOpened = true;
+                    addToBackpack('key', '钥匙', '🔑');
+                }
+                const keyHtml = `
+                    <h3>🔑 左口袋</h3>
+                    <div style="text-align:center;padding:20px;">
+                        <div style="font-size:3rem;margin-bottom:12px;">🔑</div>
+                        <p>发现一把钥匙！已收入背包。</p>
+                    </div>
+                    <button class="modal-close-btn">✕</button>
+                `;
+                const { overlay: kOverlay, box: kBox } = openModal(keyHtml, { closeOnOverlay: true });
+                const kClose = kBox.querySelector('.modal-close-btn');
+                if (kClose) kClose.addEventListener('click', () => closeModal(kOverlay));
+            });
+
+            box.querySelector('#btn-pocket-right').addEventListener('click', () => {
+                if (state.rightPocketRevealed) {
+                    showRightPocketRevealed();
+                } else {
+                    const picHtml = `
+                        <div class="modal-box image-modal-box" style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;" id="right-pocket-modal">
+                            <img src="pic15.jpg" alt="右口袋" draggable="false" id="right-pocket-img" style="max-width:70vw;max-height:50vh;object-fit:contain;" />
+                            <div style="margin-top:12px;font-size:0.9rem;color:#3e2f1f;background:rgba(255,255,255,0.7);padding:8px 16px;border-radius:20px;letter-spacing:1px;">有字痕的纸条</div>
+                            <button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+                        </div>
+                    `;
+                    const { overlay: rOverlay, box: rBox } = openModal(picHtml, { customClass: 'image-modal-box', closeOnOverlay: true });
+                    const rClose = rBox.querySelector('.modal-close-btn');
+                    if (rClose) rClose.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        closeModal(rOverlay);
+                    });
+
+                    rBox.addEventListener('click', (e) => {
+                        if (e.target.closest('.modal-close-btn')) return;
+                        if (state.selectedBackpackItem === 'pencil') {
+                            state.rightPocketRevealed = true;
+                            state.selectedBackpackItem = null;
+                            updateBackpackPanel();
+                            closeModal(rOverlay);
+                            showRightPocketRevealed();
+                        } else if (state.selectedBackpackItem) {
+                            showToast('该物品无法在这里使用');
+                        } else {
+                            showToast('也许需要某些工具...');
+                        }
+                    });
+                }
+            });
+        }
+
+        function showRightPocketRevealed() {
+            const html = `
+                <div class="modal-box image-modal-box" style="position:relative;display:flex;align-items:center;justify-content:center;">
+                    <img src="pic16.jpg" alt="右口袋内容" draggable="false" />
+                    <button class="modal-close-btn" style="position:absolute;top:12px;right:16px;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;cursor:pointer;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+            `;
+            const { overlay, box } = openModal(html, { customClass: 'image-modal-box', closeOnOverlay: true });
+            const closeBtn = box.querySelector('.modal-close-btn');
+            if (closeBtn) closeBtn.addEventListener('click', () => closeModal(overlay));
+        }
+
+        function goToPage3() { window.location.href = 'page3.html'; }
+
+        function init() {
+            updateEvidencePanel();
+            updateBackpackPanel();
+            positionHotspots();
+            window.addEventListener('resize', positionHotspots);
+            window.addEventListener('orientationchange', () => { setTimeout(positionHotspots, 300); });
+            bgImage.addEventListener('load', positionHotspots);
+            if (bgImage.complete) positionHotspots();
+        }
+
+        init();
+    </script>
+</body>
+</html>
