@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>第2页 - 调查询问</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            user-select: none;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 700px;
+            height: 90vh;
+            max-height: 800px;
+            background: #f5f0eb;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .char-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 12px 8px 12px;
+            background: rgba(255,255,240,0.7);
+            backdrop-filter: blur(6px);
+            border-bottom: 1px solid #d9cdb8;
+            flex-shrink: 0;
+        }
+        .char-btn {
+            background: #e8dccf;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 22px;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: #3e2e1f;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+        }
+        .char-btn.active {
+            background: #8b5a2b;
+            color: white;
+            box-shadow: 0 4px 10px rgba(107, 68, 35, 0.4);
+        }
+        .char-btn:active {
+            transform: scale(0.96);
+        }
+
+        .interact-area {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            position: relative;
+        }
+
+        .character-display {
+            width: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 20px 8px 30px 8px;
+            background: #ffffff;
+            border-right: 1px solid #e0d6c8;
+            flex-shrink: 0;
+        }
+
+        .char-image {
+            width: 80px;
+            height: auto;
+            max-height: 155px;
+            object-fit: contain;
+            margin-bottom: 12px;
+        }
+
+        .char-name {
+            font-size: 17px;
+            font-weight: bold;
+            color: #2e2416;
+            letter-spacing: 2px;
+            text-align: center;
+            min-height: 24px;
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #faf7f2;
+            position: relative;
+        }
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 16px 10px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .message-row {
+            display: flex;
+            width: 100%;
+            animation: fadeInUp 0.3s;
+        }
+        .message-row.player {
+            justify-content: flex-end;
+        }
+        .message-row.npc {
+            justify-content: flex-start;
+        }
+        .bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 20px;
+            font-size: 15px;
+            line-height: 1.6;
+            word-break: break-word;
+            position: relative;
+            letter-spacing: 0.5px;
+        }
+        .player .bubble {
+            background: #8b5a2b;
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+        .npc .bubble {
+            background: #e7dbcc;
+            color: #2e2416;
+            border-bottom-left-radius: 6px;
+        }
+
+        .input-area {
+            padding: 12px 16px 16px 16px;
+            background: rgba(255,255,245,0.9);
+            border-top: 1px solid #dfd3bf;
+            backdrop-filter: blur(4px);
+            flex-shrink: 0;
+        }
+        .question-btn {
+            background: #ffffff;
+            border: 1px solid #c8b89a;
+            border-radius: 22px;
+            padding: 12px 18px;
+            width: 100%;
+            font-size: 15px;
+            color: #3e2e1f;
+            cursor: pointer;
+            text-align: left;
+            transition: 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .question-btn::before {
+            content: "💬";
+            font-size: 16px;
+        }
+        .question-btn:active {
+            background: #f0e8da;
+            transform: scale(0.98);
+        }
+        .question-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #e9e2d5;
+            border-color: #d3c6b2;
+        }
+
+        .bottom-info {
+            flex-shrink: 0;
+            background: rgba(255,255,240,0.6);
+            border-top: 1px solid #e2d7c5;
+            padding: 8px 0 0 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .truth-hint-bottom {
+            font-size: 13px;
+            color: #8b7355;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+        .footer-credit {
+            font-size: 11px;
+            color: #9b8b7a;
+            letter-spacing: 1px;
+            padding-bottom: 8px;
+        }
+
+        .investigate-btn {
+            position: absolute;
+            bottom: 90px;
+            left: 20px;
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 28px;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+            z-index: 20;
+            display: none;
+            transition: transform 0.2s;
+            animation: fadeInUp 0.4s;
+        }
+        .investigate-btn:hover {
+            transform: scale(1.05);
+        }
+        .investigate-btn:active {
+            transform: scale(0.96);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            backdrop-filter: blur(6px);
+        }
+        .modal-content {
+            background: #2c2416;
+            color: #f0e6d2;
+            padding: 30px 28px;
+            border-radius: 28px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            border: 1px solid #6b5a44;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+        .modal-btn {
+            margin-top: 24px;
+            background: #c49a6c;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 28px;
+            font-size: 17px;
+            font-weight: bold;
+            color: #1e150c;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .modal-btn:active {
+            background: #b3824e;
+            transform: scale(0.96);
+        }
+
+        @media (max-width: 500px) {
+            .character-display {
+                width: 90px;
+            }
+            .char-image {
+                width: 60px;
+                max-height: 120px;
+            }
+            .investigate-btn {
+                bottom: 80px;
+                left: 10px;
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="modal-overlay" id="introModal">
+        <div class="modal-content">
+            <p>朋友名叫舒代华，死在自家储物间，从现场看，明显死于他杀，由于你晚宴前一直没离开房间，成为了唯一没有嫌疑的人，于是调查真相的重任落在了你身上。大家最后一次见到死者是在今天下午五点，先了解一下别墅里的人17：00到19：00之间都在做什么吧。</p>
+            <button class="modal-btn" id="closeModalBtn">继续游戏</button>
+        </div>
+    </div>
+
+    <div class="main-container" id="mainContainer">
+        <div class="char-buttons" id="charButtons">
+            <button class="char-btn" data-npc="shuDaixiong">舒代雄</button>
+            <button class="char-btn" data-npc="zhaoZheng">赵筝</button>
+            <button class="char-btn" data-npc="daiShu">戴纾</button>
+            <button class="char-btn" data-npc="fengYing">冯颖</button>
+            <button class="char-btn" data-npc="luHuaJi">卢华辑</button>
+        </div>
+
+        <div class="interact-area">
+            <div class="character-display">
+                <img id="charImage" class="char-image" src="" alt="人物剪影">
+                <div class="char-name" id="currentCharName">　</div>
+            </div>
+
+            <div class="chat-area">
+                <div class="messages-container" id="messagesContainer"></div>
+                <div class="input-area" id="inputArea">
+                    <button class="question-btn" id="questionBtn" disabled>选择一位人物开始询问</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bottom-info">
+            <div class="truth-hint-bottom">（时间线均为实话，可以相信。）</div>
+            <div class="footer-credit">©爆炒霸王龙🦖制作</div>
+        </div>
+
+        <button class="investigate-btn" id="investigateBtn">🔍 开始搜证</button>
+    </div>
+
+    <script>
+        (function() {
+            // NPC 数据 —— 增加 history 数组保存已完成的对话记录
+            const npcData = {
+                shuDaixiong: {
+                    name: "舒代雄",
+                    image: "pic4.jpg",
+                    history: [],  // 存储 { player, npc } 对象
+                    dialogues: [
+                        { player: "你的姓名，和死者的关系是什么，今天为什么会在这栋别墅里？", npc: "我叫舒代雄，是死者的弟弟，什么叫我为什么会在这栋别墅里？这就是我家，我天天都在！！" },
+                        { player: "不要激动，只是例行询问，那么17点到19点之间，你在做什么？", npc: "嗯…我想想啊，五点半之前，我一直在打游戏，五点半正好那局结束了，我发现纸不够用了，就去储物间拿了一趟纸抽，前后应该去了十分钟吧。从储物间出来，我感觉有点渴，就去厨房拿了瓶饮料，大概用了五分钟。再之后我就一直打游戏，打到吃饭了。" }
+                    ]
+                },
+                zhaoZheng: {
+                    name: "赵筝",
+                    image: "pic5.jpg",
+                    history: [],
+                    dialogues: [
+                        { player: "你的姓名，和死者的关系，还有今天为什么会在这栋别墅？", npc: "我叫赵筝，是这栋别墅的管家，平时我就住在这里，每天都在。" },
+                        { player: "那么你今天下午的五点到七点之间都做了些什么呢？", npc: "我今天下午一直在储物间清点物品清点到大概17:45，后面我就去房间工作了。工作到六点多，大概18：10这样，我出来透透气。在厨房和厨师交流了一下晚宴都要准备什么东西，聊了十分钟。交流完我就回房间工作到晚宴开始。" }
+                    ]
+                },
+                daiShu: {
+                    name: "戴纾",
+                    image: "pic6.jpg",
+                    history: [],
+                    dialogues: [
+                        { player: "你的姓名，和死者的关系，以及为什么今天会在这栋别墅？", npc: "我叫戴纾，是别墅的保洁，每天下午我都会来这里上班。" },
+                        { player: "今天下午五点到七点之间你都在做什么？", npc: "我五点半到的别墅，先在大厅打扫了15分钟。然后去储物间收拾整理到六点。整理完储物间我就去打扫书房，干到了六点半。打扫完书房我就去打扫主卧次卧，一直干到七点。" }
+                    ]
+                },
+                fengYing: {
+                    name: "冯颖",
+                    image: "pic7.jpg",
+                    history: [],
+                    dialogues: [
+                        { player: "请问你叫什么，和死者什么关系，还有今天来这里是做什么的？", npc: "我叫冯颖，是个厨师，老板雇我每天中午和晚上来这里做饭。" },
+                        { player: "今天的17点到19点之间，你在做什么？", npc: "五点的时候我去书房给老板送了一杯咖啡，前后应该花了五分钟。然后我就在厨房备菜，到五点半。老板之前跟我说了，这次晚宴很重要，让我五点半的时候去书房找他核对菜单。核对完菜单，我从书房离开，就一直在厨房准备晚餐了。大概时间是…哦对了，六点十分的时候管家来找我交代了一些工作，那我是六点左右回来厨房的。" }
+                    ]
+                },
+                luHuaJi: {
+                    name: "卢华辑",
+                    image: "pic8.jpg",
+                    history: [],
+                    dialogues: [
+                        { player: "姓名，和死者的关系，以及今天为什么会在这里？", npc: "我叫卢华辑，是死者合作公司的业务员，我来这里是来商讨合作细节的。" },
+                        { player: "今天17点到19点之间，你在做什么？", npc: "我五点到的别墅，管家领我去客房放好东西之后，我就去去书房找死者了，前后花了五分钟。之后我和死者在书房交谈合作项目，聊了20分钟。聊完他让我再修改一下里头的细节，我就在这个别墅区里散步找灵感。逛了半个多小时，差不多六点的时候我回来别墅，在大厅看了看他这里的装潢。嘿嘿嘿，头一次进别墅，别见怪啊。六点二十的时候，我就回客房修改合作方案了。一直工作到七点晚宴开始。" }
+                    ]
+                }
+            };
+
+            const completedNpcs = {
+                shuDaixiong: false,
+                zhaoZheng: false,
+                daiShu: false,
+                fengYing: false,
+                luHuaJi: false
+            };
+
+            const modalOverlay = document.getElementById('introModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const charButtons = document.querySelectorAll('.char-btn');
+            const currentCharName = document.getElementById('currentCharName');
+            const charImage = document.getElementById('charImage');
+            const messagesContainer = document.getElementById('messagesContainer');
+            const questionBtn = document.getElementById('questionBtn');
+            const inputArea = document.getElementById('inputArea');
+            const investigateBtn = document.getElementById('investigateBtn');
+
+            let activeNpc = null;
+            let dialogueIndex = 0;            // 当前即将进行的问题索引
+            let isTyping = false;
+            let typingInterval = null;
+            let currentTextTarget = null;
+            let fullTextBuffer = "";
+
+            function stopTyping() {
+                if (typingInterval) {
+                    clearInterval(typingInterval);
+                    typingInterval = null;
+                }
+                isTyping = false;
+            }
+
+            function typeText(element, text, speed = 45, onComplete) {
+                stopTyping();
+                element.textContent = '';
+                fullTextBuffer = text;
+                let index = 0;
+                isTyping = true;
+                currentTextTarget = element;
+
+                typingInterval = setInterval(() => {
+                    if (index < text.length) {
+                        element.textContent += text.charAt(index);
+                        index++;
+                    } else {
+                        clearInterval(typingInterval);
+                        typingInterval = null;
+                        isTyping = false;
+                        currentTextTarget = null;
+                        if (onComplete) onComplete();
+                    }
+                }, speed);
+            }
+
+            function createBubble(text, type) {
+                const row = document.createElement('div');
+                row.className = `message-row ${type}`;
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.textContent = text;   // 直接设置文本，非打字时
+                row.appendChild(bubble);
+                messagesContainer.appendChild(row);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                return bubble;
+            }
+
+            // 重新渲染当前 NPC 的历史记录（纯文本，无打字）
+            function renderHistory() {
+                messagesContainer.innerHTML = '';
+                if (!activeNpc) return;
+                const history = npcData[activeNpc].history;
+                history.forEach(item => {
+                    createBubble(item.player, 'player');
+                    createBubble(item.npc, 'npc');
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            function checkAllCompleted() {
+                const allDone = Object.values(completedNpcs).every(v => v === true);
+                investigateBtn.style.display = allDone ? 'block' : 'none';
+            }
+
+            // 将一轮对话保存到当前NPC的history
+            function saveDialogueToHistory(playerText, npcText) {
+                if (!activeNpc) return;
+                npcData[activeNpc].history.push({
+                    player: playerText,
+                    npc: npcText
+                });
+            }
+
+            function playDialogueRound() {
+                if (!activeNpc) return;
+                const dialogues = npcData[activeNpc].dialogues;
+                if (dialogueIndex >= dialogues.length) {
+                    questionBtn.textContent = '询问结束，可选择其他人物';
+                    questionBtn.disabled = true;
+                    completedNpcs[activeNpc] = true;
+                    checkAllCompleted();
+                    return;
+                }
+
+                const round = dialogues[dialogueIndex];
+                questionBtn.disabled = true;
+                questionBtn.textContent = '...';
+
+                // 创建玩家气泡并逐字显示
+                const playerBubble = createBubble('', 'player');
+                typeText(playerBubble, round.player, 40, () => {
+                    const npcBubble = createBubble('', 'npc');
+                    typeText(npcBubble, round.npc, 35, () => {
+                        // 保存对话
+                        saveDialogueToHistory(round.player, round.npc);
+                        dialogueIndex++;
+                        if (dialogueIndex >= dialogues.length) {
+                            completedNpcs[activeNpc] = true;
+                            checkAllCompleted();
+                        }
+                        prepareNextQuestion();
+                    });
+                });
+            }
+
+            function prepareNextQuestion() {
+                if (!activeNpc) return;
+                const dialogues = npcData[activeNpc].dialogues;
+                if (dialogueIndex < dialogues.length) {
+                    const nextPlayerText = dialogues[dialogueIndex].player;
+                    let preview = nextPlayerText.length > 25 ? nextPlayerText.slice(0, 25) + '…' : nextPlayerText;
+                    questionBtn.textContent = preview;
+                    questionBtn.disabled = false;
+                } else {
+                    questionBtn.textContent = '询问结束，可选择其他人物';
+                    questionBtn.disabled = true;
+                }
+            }
+
+            function onQuestionClick() {
+                if (isTyping) {
+                    completeCurrentAndProceed();
+                    return;
+                }
+                if (!activeNpc) return;
+                if (dialogueIndex >= npcData[activeNpc].dialogues.length) return;
+                playDialogueRound();
+            }
+
+            function completeCurrentAndProceed() {
+                if (!isTyping || !activeNpc) return;
+                stopTyping();
+                if (currentTextTarget && fullTextBuffer) {
+                    currentTextTarget.textContent = fullTextBuffer;
+                }
+                const rows = messagesContainer.querySelectorAll('.message-row');
+                const lastRow = rows[rows.length - 1];
+                if (!lastRow) {
+                    isTyping = false;
+                    return;
+                }
+                const dialogues = npcData[activeNpc].dialogues;
+                if (lastRow.classList.contains('player')) {
+                    // 快速完成玩家问题，需显示对应NPC回答
+                    const round = dialogues[dialogueIndex];
+                    const npcBubble = createBubble('', 'npc');
+                    typeText(npcBubble, round.npc, 35, () => {
+                        saveDialogueToHistory(round.player, round.npc);
+                        dialogueIndex++;
+                        if (dialogueIndex >= dialogues.length) {
+                            completedNpcs[activeNpc] = true;
+                            checkAllCompleted();
+                        }
+                        prepareNextQuestion();
+                    });
+                } else if (lastRow.classList.contains('npc')) {
+                    // 快速完成NPC回答，保存历史并推进
+                    const round = dialogues[dialogueIndex];
+                    saveDialogueToHistory(round.player, round.npc);
+                    dialogueIndex++;
+                    if (dialogueIndex >= dialogues.length) {
+                        completedNpcs[activeNpc] = true;
+                        checkAllCompleted();
+                    }
+                    prepareNextQuestion();
+                }
+                isTyping = false;
+            }
+
+            function selectNpc(npcKey) {
+                stopTyping();
+                isTyping = false;
+                activeNpc = npcKey;
+                const npc = npcData[npcKey];
+                // 根据已有历史记录数量设置对话索引
+                dialogueIndex = npc.history.length;
+                currentCharName.textContent = npc.name;
+                charImage.src = npc.image;
+                charImage.alt = npc.name;
+
+                // 重新渲染该NPC的历史记录
+                renderHistory();
+
+                charButtons.forEach(btn => {
+                    const val = btn.getAttribute('data-npc');
+                    if (val === npcKey) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                });
+
+                if (completedNpcs[npcKey] || dialogueIndex >= npc.dialogues.length) {
+                    questionBtn.textContent = '询问结束，可选择其他人物';
+                    questionBtn.disabled = true;
+                    completedNpcs[npcKey] = true;
+                } else {
+                    prepareNextQuestion();
+                }
+            }
+
+            investigateBtn.addEventListener('click', () => {
+                window.location.href = 'page3.html';
+            });
+
+            closeModalBtn.addEventListener('click', () => {
+                modalOverlay.style.display = 'none';
+            });
+
+            charButtons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const npcKey = btn.getAttribute('data-npc');
+                    selectNpc(npcKey);
+                });
+            });
+
+            questionBtn.addEventListener('click', onQuestionClick);
+
+            messagesContainer.addEventListener('click', (e) => {
+                if (isTyping) {
+                    e.stopPropagation();
+                    completeCurrentAndProceed();
+                }
+            });
+            inputArea.addEventListener('click', (e) => {
+                if (isTyping && e.target !== questionBtn) {
+                    e.stopPropagation();
+                    completeCurrentAndProceed();
+                }
+            });
+
+            // 初始状态
+            questionBtn.disabled = true;
+            questionBtn.textContent = '选择一位人物开始询问';
+            checkAllCompleted();
+        })();
+    </script>
+</body>
+</html>

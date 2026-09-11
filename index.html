@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>半山别墅谋杀案</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        width: 100%;
+        height: 100vh;
+        overflow: hidden;
+        background: #0d0906;
+        font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", serif;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        position: relative;
+    }
+
+    /* ===== 全屏背景图 ===== */
+    #start-bg {
+        position: fixed;
+        inset: 0;
+        background-image: url('pic0.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        z-index: 0;
+        animation: bgZoom 14s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgZoom {
+        from {
+            transform: scale(1);
+        }
+        to {
+            transform: scale(1.06);
+        }
+    }
+
+    /* 背景遮罩 */
+    #start-bg::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background:
+            radial-gradient(ellipse at 50% 50%, rgba(20, 12, 6, .12) 0%, rgba(15, 9, 4, .58) 100%),
+            linear-gradient(to bottom, rgba(15, 9, 4, .55) 0%, transparent 32%, transparent 62%, rgba(15, 9, 4, .72) 100%);
+        pointer-events: none;
+    }
+
+    /* ===== 内容容器 ===== */
+    #start-container {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 18px;
+        text-align: center;
+    }
+
+    /* ===== 标题区 ===== */
+    .title-area {
+        margin-bottom: 56px;
+        animation: fadeDown 1.1s ease forwards;
+    }
+
+    @keyframes fadeDown {
+        from {
+            opacity: 0;
+            transform: translateY(-26px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .game-title {
+        font-family: "Georgia", "Songti SC", "PingFang SC", serif;
+        font-size: 48px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        color: #f3e6d0;
+        padding-left: 8px;
+        text-shadow:
+            0 0 30px rgba(196, 154, 108, .85),
+            0 4px 18px rgba(0, 0, 0, .95),
+            0 0 90px rgba(139, 90, 43, .55);
+        white-space: nowrap;
+    }
+
+    .game-subtitle {
+        margin-top: 16px;
+        font-size: 14px;
+        letter-spacing: 8px;
+        color: rgba(219, 184, 140, .9);
+        padding-left: 8px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, .9);
+    }
+
+    .title-divider {
+        width: 180px;
+        height: 1px;
+        margin: 22px auto 0;
+        background: linear-gradient(90deg, transparent, rgba(196, 154, 108, .85), transparent);
+    }
+
+    /* ===== 开始按钮 ===== */
+    .start-btn-wrap {
+        animation: fadeUp 1.2s .25s ease backwards;
+    }
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(26px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    #start-btn {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        padding: 20px 64px;
+        font-family: inherit;
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 8px;
+        color: #fdf7ee;
+        background: linear-gradient(135deg, rgba(169, 112, 58, .92), rgba(122, 77, 36, .92));
+        border: 2px solid #dbb88c;
+        border-radius: 54px;
+        cursor: pointer;
+        box-shadow:
+            0 10px 36px rgba(0, 0, 0, .75),
+            0 0 34px rgba(139, 90, 43, .6),
+            inset 0 1px 0 rgba(255, 220, 180, .4);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, .7);
+        transition: transform .2s ease, box-shadow .3s ease, background .3s ease;
+        overflow: hidden;
+        animation: btnPulse 2.8s ease-in-out infinite;
+    }
+
+    #start-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -80%;
+        width: 60%;
+        height: 100%;
+        background: linear-gradient(100deg, transparent, rgba(255, 235, 205, .38), transparent);
+        transform: skewX(-22deg);
+        animation: shine 3.6s ease-in-out infinite;
+    }
+
+    @keyframes shine {
+        0% {
+            left: -80%;
+        }
+        55%, 100% {
+            left: 130%;
+        }
+    }
+
+    @keyframes btnPulse {
+        0%, 100% {
+            box-shadow:
+                0 10px 36px rgba(0, 0, 0, .75),
+                0 0 30px rgba(139, 90, 43, .55),
+                inset 0 1px 0 rgba(255, 220, 180, .4);
+        }
+        50% {
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, .8),
+                0 0 52px rgba(196, 154, 108, .95),
+                inset 0 1px 0 rgba(255, 220, 180, .5);
+        }
+    }
+
+    #start-btn:hover {
+        transform: scale(1.045);
+        background: linear-gradient(135deg, rgba(190, 128, 68, .95), rgba(140, 90, 42, .95));
+    }
+
+    #start-btn:active {
+        transform: scale(0.965);
+    }
+
+    #start-btn .btn-icon {
+        font-size: 26px;
+        line-height: 1;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, .6));
+    }
+
+    /* ===== 底部提示 ===== */
+    .bottom-tip {
+        position: fixed;
+        bottom: 26px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        letter-spacing: 3px;
+        color: rgba(212, 184, 150, .55);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, .95);
+        z-index: 3;
+        animation: fadeUp 1.4s .6s ease backwards;
+    }
+
+    /* ===== 移动端适配 ===== */
+    @media (max-width: 768px) {
+        .title-area {
+            margin-bottom: 46px;
+        }
+
+        .game-title {
+            font-size: 34px;
+            letter-spacing: 5px;
+        }
+
+        .game-subtitle {
+            font-size: 12px;
+            letter-spacing: 6px;
+            margin-top: 13px;
+        }
+
+        .title-divider {
+            width: 130px;
+            margin-top: 18px;
+        }
+
+        #start-btn {
+            padding: 17px 48px;
+            font-size: 20px;
+            letter-spacing: 6px;
+            gap: 11px;
+        }
+
+        #start-btn .btn-icon {
+            font-size: 22px;
+        }
+
+        .bottom-tip {
+            bottom: 20px;
+            font-size: 11px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .title-area {
+            margin-bottom: 38px;
+        }
+
+        .game-title {
+            font-size: 26px;
+            letter-spacing: 4px;
+            padding-left: 4px;
+        }
+
+        .game-subtitle {
+            font-size: 11px;
+            letter-spacing: 4px;
+            margin-top: 11px;
+        }
+
+        .title-divider {
+            width: 100px;
+            margin-top: 15px;
+        }
+
+        #start-btn {
+            padding: 15px 38px;
+            font-size: 17px;
+            letter-spacing: 5px;
+            gap: 9px;
+            border-radius: 44px;
+        }
+
+        #start-btn .btn-icon {
+            font-size: 19px;
+        }
+
+        .bottom-tip {
+            bottom: 16px;
+            font-size: 10px;
+            letter-spacing: 2px;
+        }
+    }
+
+    /* 横屏矮屏适配 */
+    @media (max-height: 520px) {
+        .title-area {
+            margin-bottom: 26px;
+        }
+
+        .game-title {
+            font-size: 28px;
+        }
+
+        #start-btn {
+            padding: 14px 42px;
+            font-size: 18px;
+        }
+
+        .bottom-tip {
+            bottom: 10px;
+        }
+    }
+</style>
+</head>
+<body>
+
+    <!-- 全屏背景 -->
+    <div id="start-bg"></div>
+
+    <!-- 内容 -->
+    <div id="start-container">
+        <div class="title-area">
+            <h1 class="game-title">半山别墅谋杀案</h1>
+            <div class="game-subtitle">真 相 只 有 一 个</div>
+            <div class="title-divider"></div>
+        </div>
+
+        <div class="start-btn-wrap">
+            <button id="start-btn" type="button">
+                <span class="btn-icon">🔍</span>
+                <span>开始游戏</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 底部提示 -->
+    <div class="bottom-tip">点击按钮，进入案发现场</div>
+
+<script>
+(function() {
+    'use strict';
+
+    var startBtn = document.getElementById('start-btn');
+
+    startBtn.addEventListener('click', function() {
+        startBtn.disabled = true;
+        startBtn.style.transform = 'scale(0.95)';
+        setTimeout(function() {
+            window.location.href = 'page1.html';
+        }, 160);
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !startBtn.disabled) {
+            startBtn.click();
+        }
+    });
+
+})();
+</script>
+</body>
+</html>

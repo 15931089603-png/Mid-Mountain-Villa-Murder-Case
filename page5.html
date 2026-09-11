@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>第4页 - 最终推理</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    html {
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+        min-height: 100vh;
+        background: #1c120a;
+        background-image:
+            radial-gradient(ellipse at 50% -10%, rgba(139, 90, 43, 0.45) 0%, transparent 60%),
+            radial-gradient(ellipse at 50% 110%, rgba(139, 90, 43, 0.25) 0%, transparent 60%);
+        background-attachment: fixed;
+        font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", serif;
+        color: #3d2b1a;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        padding: 26px 16px 150px;
+    }
+
+    /* ============ 页面头部 ============ */
+    #main-container {
+        max-width: 880px;
+        margin: 0 auto;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 26px;
+    }
+
+    .page-header h1 {
+        font-family: "Georgia", "Songti SC", "PingFang SC", serif;
+        font-size: 34px;
+        letter-spacing: 8px;
+        color: #ecd9b8;
+        text-shadow: 0 2px 14px rgba(139, 90, 43, 0.9), 0 0 40px rgba(196, 154, 108, 0.35);
+        padding-left: 8px;
+    }
+
+    .page-header .subtitle {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #b09070;
+        letter-spacing: 3px;
+    }
+
+    .page-header .divider {
+        width: 150px;
+        height: 2px;
+        margin: 16px auto 0;
+        background: linear-gradient(90deg, transparent, #c49a6c, transparent);
+        opacity: .8;
+    }
+
+    /* ============ 题目卡片 ============ */
+    #quiz-section {
+        transition: opacity .35s ease, transform .35s ease;
+    }
+
+    .question-card {
+        position: relative;
+        background: linear-gradient(160deg, #f8f1e3, #eee1cd);
+        border: 3px solid #8b5a2b;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 240, 220, .6);
+        padding: 20px 22px 22px;
+        margin-bottom: 20px;
+    }
+
+    .question-title {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        font-size: 19px;
+        font-weight: 700;
+        color: #4a2f1a;
+        letter-spacing: 1px;
+        line-height: 1.55;
+    }
+
+    .q-num {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #a9703a, #7a4d24);
+        color: #fdf7ee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        font-family: "Georgia", serif;
+        box-shadow: 0 3px 10px rgba(139, 90, 43, .55);
+        margin-top: 3px;
+    }
+
+    .options {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        margin-top: 15px;
+    }
+
+    .option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        background: rgba(255, 252, 246, .78);
+        border: 2px solid #ddcbb4;
+        border-radius: 12px;
+        padding: 11px 15px;
+        font-size: 16px;
+        color: #3d2b1a;
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+        letter-spacing: .5px;
+        line-height: 1.4;
+        transition: all .18s ease;
+    }
+
+    .option .letter {
+        flex-shrink: 0;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 2px solid #bb9c78;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: #8b5a2b;
+        font-family: "Georgia", serif;
+        transition: all .18s ease;
+    }
+
+    .option:hover {
+        border-color: #8b5a2b;
+        background: #fffaf1;
+        transform: translateX(2px);
+    }
+
+    .option.selected {
+        background: linear-gradient(135deg, #96632f, #7a4d24);
+        border-color: #5a3d24;
+        color: #fdf7ee;
+        box-shadow: 0 6px 18px rgba(139, 90, 43, .5);
+        transform: translateX(0);
+    }
+
+    .option.selected .letter {
+        background: #fdf7ee;
+        border-color: #fdf7ee;
+        color: #6a4523;
+    }
+
+    /* ============ 提交按钮 ============ */
+    #submit-wrap {
+        text-align: center;
+        margin: 30px 0 6px;
+    }
+
+    #submit-btn {
+        background: linear-gradient(135deg, #a9703a, #7a4d24);
+        border: 2px solid #dbb88c;
+        color: #fdf7ee;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: 6px;
+        padding: 16px 46px 16px 52px;
+        border-radius: 44px;
+        cursor: pointer;
+        font-family: inherit;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 220, 180, .35);
+        transition: transform .18s ease, box-shadow .25s ease, opacity .25s ease;
+    }
+
+    #submit-btn:hover:not(:disabled) {
+        transform: scale(1.03);
+        box-shadow: 0 12px 40px rgba(139, 90, 43, .8), inset 0 1px 0 rgba(255, 220, 180, .45);
+    }
+
+    #submit-btn:active:not(:disabled) {
+        transform: scale(0.96);
+    }
+
+    #submit-btn:disabled {
+        opacity: .42;
+        cursor: not-allowed;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .4);
+    }
+
+    #submit-hint {
+        margin-top: 12px;
+        font-size: 13px;
+        color: #a1835f;
+        letter-spacing: 2px;
+        min-height: 18px;
+        transition: color .2s;
+    }
+
+    /* ============ 结算页 ============ */
+    #result-section {
+        display: none;
+    }
+
+    #result-section.show {
+        display: block;
+        animation: resultIn .55s ease forwards;
+    }
+
+    @keyframes resultIn {
+        from {
+            opacity: 0;
+            transform: translateY(22px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .verdict-card {
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        background: linear-gradient(160deg, #f8f1e3, #e8dac2);
+        border: 3px solid #c49a6c;
+        border-radius: 20px;
+        padding: 34px 22px 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 14px 44px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(255, 245, 230, .7);
+    }
+
+    .verdict-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% -20%, rgba(196, 154, 108, .45), transparent 70%);
+        pointer-events: none;
+    }
+
+    .verdict-icon {
+        position: relative;
+        font-size: 46px;
+        line-height: 1;
+        margin-bottom: 16px;
+        filter: drop-shadow(0 5px 12px rgba(139, 90, 43, .55));
+    }
+
+    #verdict-title {
+        position: relative;
+        font-family: "Georgia", "Songti SC", "PingFang SC", serif;
+        font-size: 26px;
+        font-weight: 700;
+        color: #5a3d24;
+        letter-spacing: 2px;
+        line-height: 1.6;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, .7);
+    }
+
+    /* ============ 推理过程 ============ */
+    .reasoning-card {
+        background: linear-gradient(160deg, #faf4e9, #f0e6d4);
+        border: 3px solid #8b5a2b;
+        border-radius: 16px;
+        padding: 24px 24px 28px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 245, 230, .6);
+    }
+
+    .reasoning-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-bottom: 14px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #d4c0a8;
+    }
+
+    .reasoning-header .r-icon {
+        font-size: 22px;
+        line-height: 1;
+    }
+
+    .reasoning-header h3 {
+        font-size: 20px;
+        letter-spacing: 4px;
+        color: #4a2f1a;
+        font-weight: 700;
+    }
+
+    .reasoning-card p {
+        font-family: "Georgia", "Songti SC", "PingFang SC", serif;
+        font-size: 16px;
+        line-height: 2.05;
+        color: #3a2a19;
+        letter-spacing: .5px;
+        text-indent: 2em;
+        margin-bottom: 17px;
+        user-select: text;
+        -webkit-user-select: text;
+    }
+
+    .reasoning-card p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* ===== 结局按钮 ===== */
+    .ending-wrap {
+        text-align: center;
+        margin-top: 28px;
+    }
+
+    .ending-btn {
+        background: linear-gradient(135deg, #a9703a, #7a4d24);
+        border: 2px solid #dbb88c;
+        color: #fdf7ee;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 4px;
+        padding: 14px 48px;
+        border-radius: 40px;
+        cursor: pointer;
+        font-family: inherit;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 220, 180, .35);
+        transition: transform .18s ease, box-shadow .25s ease;
+    }
+
+    .ending-btn:hover {
+        transform: scale(1.03);
+        box-shadow: 0 12px 40px rgba(139, 90, 43, .8), inset 0 1px 0 rgba(255, 220, 180, .45);
+    }
+
+    .ending-btn:active {
+        transform: scale(0.96);
+    }
+
+    /* ============ 放大镜按钮 ============ */
+    #magnifier-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, #c49a6c, #8b5a2b);
+        border: 3px solid #dbb88c;
+        box-shadow: 0 4px 24px rgba(139, 90, 43, .8), inset 0 2px 4px rgba(255, 215, 160, .3);
+        cursor: pointer;
+        z-index: 150;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform .2s, box-shadow .2s;
+        font-size: 30px;
+        color: #f5ede3;
+        text-shadow: 0 2px 6px rgba(0, 0, 0, .5);
+        animation: floatPulse 3s ease-in-out infinite;
+    }
+
+    #magnifier-btn:hover {
+        transform: scale(1.06);
+    }
+
+    #magnifier-btn:active {
+        transform: scale(0.92);
+    }
+
+    @keyframes floatPulse {
+        0%, 100% {
+            box-shadow: 0 4px 24px rgba(139, 90, 43, .8);
+        }
+        50% {
+            box-shadow: 0 6px 40px rgba(196, 154, 108, 1);
+        }
+    }
+
+    /* ============ 侦探助手（复古笔记本） ============ */
+    #assistant-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, .78);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        z-index: 200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        animation: overlayFadeIn .3s ease forwards;
+    }
+
+    #assistant-overlay.active {
+        display: flex;
+    }
+
+    @keyframes overlayFadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .notebook {
+        position: relative;
+        width: 100%;
+        max-width: 820px;
+        max-height: 92vh;
+        background: #3d2b1a;
+        background-image: repeating-linear-gradient(45deg, rgba(60, 40, 20, .3) 0px, rgba(60, 40, 20, .3) 2px, transparent 2px, transparent 6px);
+        border-radius: 18px 8px 8px 18px;
+        box-shadow: 0 24px 80px rgba(0, 0, 0, .9), 0 0 0 3px #5a3d24, 0 0 0 6px #7a5a3a;
+        padding: 8px 8px 8px 16px;
+        display: flex;
+        gap: 0;
+        animation: modalPop .4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        overflow: hidden;
+    }
+
+    @keyframes modalPop {
+        from {
+            transform: scale(.92);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .notebook::before {
+        content: '';
+        position: absolute;
+        left: 6px;
+        top: 10%;
+        bottom: 10%;
+        width: 2px;
+        background: repeating-linear-gradient(to bottom, #7a5a3a 0px, #7a5a3a 6px, transparent 6px, transparent 10px);
+        opacity: .6;
+        z-index: 5;
+        border-radius: 2px;
+    }
+
+    .notebook::after {
+        content: '';
+        position: absolute;
+        left: 10px;
+        top: 10%;
+        bottom: 10%;
+        width: 2px;
+        background: repeating-linear-gradient(to bottom, #7a5a3a 0px, #7a5a3a 6px, transparent 6px, transparent 10px);
+        opacity: .4;
+        z-index: 5;
+        border-radius: 2px;
+    }
+
+    .notebook-inner {
+        flex: 1;
+        background: #f7f0e0;
+        background-image:
+            radial-gradient(ellipse at 30% 20%, rgba(200, 170, 130, .08) 0%, transparent 70%),
+            repeating-linear-gradient(transparent 0px, transparent 27px, rgba(180, 150, 110, .13) 27px, rgba(180, 150, 110, .13) 28px);
+        border-radius: 6px 0 0 6px;
+        padding: 24px 24px 20px 28px;
+        position: relative;
+        min-height: 400px;
+        max-height: 78vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        box-shadow: inset 0 0 40px rgba(120, 80, 40, .08);
+    }
+
+    .notebook-inner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        border-radius: 6px 0 0 6px;
+        z-index: 0;
+    }
+
+    .notebook-inner > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .notebook-inner::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .notebook-inner::-webkit-scrollbar-track {
+        background: rgba(180, 150, 110, .15);
+        border-radius: 4px;
+    }
+
+    .notebook-inner::-webkit-scrollbar-thumb {
+        background: #8b5a2b;
+        border-radius: 4px;
+    }
+
+    /* 右侧标签列 */
+    .tab-column {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+        padding: 20px 0 20px 6px;
+        flex-shrink: 0;
+        width: 86px;
+        position: relative;
+        z-index: 10;
+    }
+
+    .tab-item {
+        padding: 8px 6px 8px 12px;
+        border-radius: 0 8px 8px 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: #f5ede3;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+        cursor: pointer;
+        transition: all .25s cubic-bezier(.25, .46, .45, .94);
+        text-align: right;
+        letter-spacing: 1px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-right: none;
+        position: relative;
+        box-shadow: -2px 2px 8px rgba(0, 0, 0, .2);
+        transform: translateX(4px);
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        white-space: nowrap;
+        font-family: "Georgia", "Times New Roman", serif;
+    }
+
+    .tab-item::after {
+        content: '';
+        position: absolute;
+        right: -4px;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: inherit;
+        border-radius: 0 4px 4px 0;
+        opacity: .6;
+    }
+
+    .tab-item.active {
+        transform: translateX(-6px) scale(1.04);
+        box-shadow: -6px 2px 20px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 215, 160, .2);
+        z-index: 20;
+        border-color: rgba(255, 215, 160, .3);
+    }
+
+    .tab-item.active::after {
+        opacity: 1;
+    }
+
+    /* 内容区 */
+    .profile-section {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #d4c0a8;
+    }
+
+    .profile-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #8b5a2b;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .2);
+        flex-shrink: 0;
+        background: #d4c0a8;
+    }
+
+    .profile-avatar.placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        color: #8b5a2b;
+        background: #e8ddd0;
+    }
+
+    .profile-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .profile-name {
+        font-family: "Georgia", "Times New Roman", "PingFang SC", serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: #2e1f0e;
+        letter-spacing: 2px;
+        line-height: 1.2;
+    }
+
+    .profile-room {
+        font-size: 15px;
+        color: #6a4f30;
+        letter-spacing: 1px;
+        margin-top: 3px;
+    }
+
+    .profile-room .icon {
+        margin-right: 4px;
+    }
+
+    .info-block {
+        margin-bottom: 20px;
+    }
+
+    .info-block:last-child {
+        margin-bottom: 0;
+    }
+
+    .section-label {
+        font-size: 13px;
+        color: #7a5a3a;
+        letter-spacing: 2px;
+        font-weight: 600;
+        margin-bottom: 11px;
+        border-bottom: 1px dashed #d4c0a8;
+        padding-bottom: 6px;
+    }
+
+    .timeline-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+    }
+
+    .timeline-list li {
+        position: relative;
+        padding-left: 18px;
+        font-size: 14.5px;
+        line-height: 1.6;
+        color: #3d2b1a;
+    }
+
+    .timeline-list li::before {
+        content: '';
+        position: absolute;
+        left: 4px;
+        top: 9px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #8b5a2b;
+        opacity: .7;
+    }
+
+    .evidence-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .evidence-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: rgba(255, 248, 235, .55);
+        border-radius: 10px;
+        border: 1px solid #e8ddd0;
+        font-size: 15px;
+        color: #3d2b1a;
+        line-height: 1.45;
+    }
+
+    .evidence-item .dot-indicator {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        border: 1px solid rgba(0, 0, 0, .1);
+    }
+
+    .evidence-item .evidence-text {
+        flex: 1;
+    }
+
+    .view-hint {
+        color: #a1876a;
+        font-size: 13.5px;
+        cursor: pointer;
+        margin-left: 2px;
+        text-decoration: underline dotted;
+        text-underline-offset: 3px;
+        transition: color .2s;
+    }
+
+    .view-hint:hover {
+        color: #8b5a2b;
+    }
+
+    .motive-text {
+        font-size: 14.5px;
+        line-height: 1.85;
+        color: #4a3623;
+        background: rgba(210, 180, 140, .18);
+        border-left: 3px solid #c49a6c;
+        border-radius: 0 8px 8px 0;
+        padding: 11px 14px;
+    }
+
+    .notebook-close {
+        position: absolute;
+        top: 10px;
+        right: 14px;
+        background: rgba(60, 40, 20, .6);
+        border: none;
+        color: #f5ede3;
+        font-size: 22px;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 30;
+        transition: background .2s, transform .15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .notebook-close:hover {
+        background: rgba(60, 40, 20, .95);
+        transform: rotate(90deg);
+    }
+
+    /* ============ 图片查看器 ============ */
+    #image-viewer {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .93);
+        z-index: 1200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        animation: overlayFadeIn .25s ease forwards;
+    }
+
+    #image-viewer.active {
+        display: flex;
+    }
+
+    #image-viewer img {
+        max-width: 100%;
+        max-height: 84vh;
+        border: 3px solid #c49a6c;
+        border-radius: 12px;
+        box-shadow: 0 20px 70px rgba(0, 0, 0, .95);
+        background: #111;
+    }
+
+    .viewer-close {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: rgba(139, 90, 43, .85);
+        border: 2px solid #dbb88c;
+        color: #fdf7ee;
+        font-size: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform .15s, background .2s;
+    }
+
+    .viewer-close:hover {
+        background: #a9703a;
+        transform: rotate(90deg);
+    }
+
+    /* ============ 移动端适配 ============ */
+    @media (max-width: 768px) {
+        body {
+            padding: 20px 12px 130px;
+        }
+
+        .page-header h1 {
+            font-size: 26px;
+            letter-spacing: 6px;
+        }
+
+        .page-header .subtitle {
+            font-size: 12px;
+        }
+
+        .question-card {
+            padding: 16px 16px 18px;
+            border-radius: 14px;
+            margin-bottom: 16px;
+        }
+
+        .question-title {
+            font-size: 16.5px;
+            gap: 9px;
+        }
+
+        .q-num {
+            width: 24px;
+            height: 24px;
+            font-size: 13px;
+        }
+
+        .option {
+            font-size: 14.5px;
+            padding: 10px 12px;
+            gap: 10px;
+            border-radius: 10px;
+        }
+
+        .option .letter {
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+        }
+
+        #submit-btn {
+            font-size: 17px;
+            padding: 14px 36px 14px 42px;
+            letter-spacing: 5px;
+        }
+
+        .verdict-card {
+            padding: 26px 16px 24px;
+            border-radius: 16px;
+        }
+
+        .verdict-icon {
+            font-size: 38px;
+        }
+
+        #verdict-title {
+            font-size: 20px;
+        }
+
+        .reasoning-card {
+            padding: 18px 16px 22px;
+            border-radius: 14px;
+        }
+
+        .reasoning-header h3 {
+            font-size: 17px;
+            letter-spacing: 3px;
+        }
+
+        .reasoning-card p {
+            font-size: 14.5px;
+            line-height: 1.95;
+            margin-bottom: 14px;
+        }
+
+        .ending-btn {
+            font-size: 16px;
+            padding: 12px 36px;
+            letter-spacing: 3px;
+        }
+
+        #magnifier-btn {
+            width: 54px;
+            height: 54px;
+            font-size: 25px;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .notebook {
+            padding: 6px 6px 6px 12px;
+            border-radius: 14px 6px 6px 14px;
+            max-height: 96vh;
+        }
+
+        .notebook-inner {
+            padding: 18px 16px 16px 20px;
+            max-height: 82vh;
+            border-radius: 4px 0 0 4px;
+        }
+
+        .tab-column {
+            width: 64px;
+            padding: 12px 0 12px 4px;
+            gap: 4px;
+        }
+
+        .tab-item {
+            font-size: 11px;
+            padding: 6px 4px 6px 8px;
+            min-height: 28px;
+            transform: translateX(2px);
+        }
+
+        .tab-item.active {
+            transform: translateX(-4px) scale(1.02);
+        }
+
+        .profile-section {
+            gap: 12px;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        .profile-avatar {
+            width: 48px;
+            height: 48px;
+        }
+
+        .profile-name {
+            font-size: 22px;
+        }
+
+        .profile-room {
+            font-size: 13px;
+        }
+
+        .timeline-list li {
+            font-size: 13.5px;
+        }
+
+        .evidence-item {
+            padding: 8px 12px;
+            font-size: 13.5px;
+            gap: 10px;
+        }
+
+        .evidence-item .dot-indicator {
+            width: 12px;
+            height: 12px;
+        }
+
+        .motive-text {
+            font-size: 13.5px;
+        }
+
+        .notebook-close {
+            width: 30px;
+            height: 30px;
+            font-size: 18px;
+            top: 6px;
+            right: 10px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        body {
+            padding: 16px 10px 120px;
+        }
+
+        .page-header h1 {
+            font-size: 22px;
+            letter-spacing: 4px;
+        }
+
+        .question-card {
+            padding: 14px 13px 16px;
+        }
+
+        .question-title {
+            font-size: 15px;
+        }
+
+        .option {
+            font-size: 13.5px;
+            padding: 9px 11px;
+        }
+
+        #submit-btn {
+            font-size: 15px;
+            padding: 12px 28px 12px 33px;
+            letter-spacing: 4px;
+        }
+
+        #verdict-title {
+            font-size: 17px;
+            letter-spacing: 1px;
+        }
+
+        .reasoning-card p {
+            font-size: 13.5px;
+            line-height: 1.9;
+        }
+
+        .ending-btn {
+            font-size: 14px;
+            padding: 10px 28px;
+            letter-spacing: 2px;
+        }
+
+        #magnifier-btn {
+            width: 46px;
+            height: 46px;
+            font-size: 21px;
+            bottom: 14px;
+            right: 14px;
+        }
+
+        .notebook {
+            padding: 4px 4px 4px 8px;
+            border-radius: 10px 4px 4px 10px;
+        }
+
+        .notebook-inner {
+            padding: 14px 12px 14px 16px;
+            max-height: 84vh;
+        }
+
+        .tab-column {
+            width: 48px;
+            padding: 8px 0 8px 2px;
+            gap: 3px;
+        }
+
+        .tab-item {
+            font-size: 9px;
+            padding: 4px 2px 4px 6px;
+            min-height: 22px;
+            border-radius: 0 4px 4px 0;
+            letter-spacing: .5px;
+        }
+
+        .profile-avatar {
+            width: 40px;
+            height: 40px;
+        }
+
+        .profile-name {
+            font-size: 18px;
+        }
+
+        .evidence-item {
+            font-size: 12.5px;
+            padding: 7px 10px;
+        }
+
+        .timeline-list li {
+            font-size: 12.5px;
+        }
+
+        .motive-text {
+            font-size: 12.5px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div id="main-container">
+    <!-- 头部 -->
+    <div class="page-header">
+        <h1>最终推理</h1>
+        <div class="subtitle">真相，只有一个</div>
+        <div class="divider"></div>
+    </div>
+
+    <!-- 题目区 -->
+    <div id="quiz-section"></div>
+
+    <!-- 结算区 -->
+    <div id="result-section">
+        <div class="verdict-card">
+            <div class="verdict-icon">🕵️</div>
+            <div id="verdict-title"></div>
+        </div>
+
+        <div class="reasoning-card">
+            <div class="reasoning-header">
+                <span class="r-icon">🔍</span>
+                <h3>推理过程</h3>
+            </div>
+            <p>众人聚集在别墅的客厅，焦急地等待你的推理结论。“凶案的第一现场并不是大家发现尸体的储物间地下室，而是书房。”你甫一开口，就说出这种石破天惊的发言。</p>
+            <p>众人神色各异，卢华辑说道：“从书房到储物间一定会穿过客厅，是怎么做到不被人发现的？”</p>
+            <p>“大家跟我来。”你领着众人来到了书房，“我在书房的地毯下面，发现了一道活动门板，门板下的这条密道可以直接通往储物间的地下室，而凶手也是通过这个地道转移尸体的。”</p>
+            <p>“当然，这并不足以证明第一现场就是书房，大家看这里。”你抬手指向书桌后面的椅背顶部，并关掉了书房的灯，椅背顶部瞬间散发出蓝绿色的荧光。“这是鲁米诺反应，把试剂滴在曾经有过血迹的地方，就会发出这种荧光，而这么大量的血迹，只有可能是凶手杀害死者时留下的。”大家点点头，表示没有异议。</p>
+            <p>“大家最后一次见到死者是在下午5点，他进入书房之前。所以凶手一定在5点到7点之间进入过书房的几人之中。”</p>
+            <p>“卢华辑在17:20离开书房前，都在书房中和死者交谈。如果他没有撒谎，那么在17:20之前，死者还活着。而戴纾说她18:00来到房间时，书房中没有人，所以死者是在17:20到18:00之间死亡的，而这个时间进过书房的只有你！冯颖！”</p>
+            <p>其他人不自觉地从冯颖身边退开，冯颖发出一声轻笑：“你有什么证据？就凭你刚刚那种站不住脚的主观推断？你觉得警察来了会信你说的话吗。”</p>
+            <p>“流程cue得不错，正好要讲到证据。”你抬起头直视着冯颖说道，“从椅背顶部的血迹形态看，血迹中心有半圆形空缺，符合锤子等钝器击打的特征。而现场没有任何打斗的痕迹，说明凶手在行凶时，死者已经处于无意识状态。”你抬手举起一个白色药瓶，“在厨房里发现的这瓶咪达唑仑，你下到了17:00给死者送来的那杯咖啡里。这种药品起效时间在20分钟左右，17:30你借着交谈晚宴工作的名义来到书房，将处于昏迷状态的死者杀害，转移尸体并清理了现场。”</p>
+            <p>“我想现在如果去储物间的地下室找找，应该会有一个沾有你的指纹和死者血迹的锤子放置在某个角落里吧！”</p>
+        </div>
+
+        <!-- 结局按钮 -->
+        <div class="ending-wrap">
+            <button id="ending-btn" class="ending-btn">结局 →</button>
+        </div>
+    </div>
+</div>
+
+<!-- 放大镜按钮 -->
+<button id="magnifier-btn" aria-label="侦探助手">🔍</button>
+
+<!-- 侦探助手弹窗 -->
+<div id="assistant-overlay">
+    <div class="notebook">
+        <button class="notebook-close" id="assistant-close" aria-label="关闭">✕</button>
+        <div class="tab-column" id="tab-column"></div>
+        <div class="notebook-inner">
+            <div id="assistant-content"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 图片查看器 -->
+<div id="image-viewer">
+    <img id="viewer-img" src="" alt="证据图片">
+    <button class="viewer-close" id="viewer-close" aria-label="关闭">✕</button>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    /* ============================================================
+     *  1. 题目数据
+     * ============================================================ */
+    const QUESTIONS = [{
+        title: '杀害死者的凶手是（）？',
+        options: [
+            ['A', '舒代雄'],
+            ['B', '赵筝'],
+            ['C', '戴纾'],
+            ['D', '冯颖'],
+            ['E', '卢华辑']
+        ],
+        answer: 'D'
+    }, {
+        title: '杀害死者的凶器是（）？',
+        options: [
+            ['A', '锋利小刀'],
+            ['B', '锤子'],
+            ['C', '咪达唑仑'],
+            ['D', '言灵：风王之瞳'],
+            ['E', '沃尔特p38']
+        ],
+        answer: 'B'
+    }, {
+        title: '凶案发生的第一现场是（）？',
+        options: [
+            ['A', '舒代雄房间'],
+            ['B', '储物间及储物间地下室'],
+            ['C', '书房'],
+            ['D', '厨房'],
+            ['E', '管家房间'],
+            ['F', '客房']
+        ],
+        answer: 'C'
+    }];
+
+    const VERDICTS = {
+        perfect: '你是超级无敌大侦探',
+        firstRight: '结果正确，过程上的小差错无伤大雅啦',
+        firstWrong: '哎呀，差一点点就能找出真正的凶手了',
+        allWrong: '推理什么的都去s吧！我才是这个世界的主宰'
+    };
+
+    /* ============================================================
+     *  2. 侦探助手数据
+     * ============================================================ */
+    const suspectsData = [{
+        id: 'shu',
+        name: '舒代雄',
+        room: '舒代雄卧室',
+        avatar: 'pic4.jpg',
+        color: '#7A6B5B',
+        timeline: [
+            '17:00——17:30 在房间打游戏',
+            '17:30——17:40 去储物间拿纸抽',
+            '17:40——17:45 去厨房拿饮料',
+            '17:45——19:00 在房间打游戏'
+        ],
+        evidence: [
+            { text: '死者公司核心数据' },
+            { text: '涂黑一半的合照' },
+            { text: '一个刻着“赵”的镇纸' },
+            { text: '大体内容相同，核心数据差异大的两份合作方案' }
+        ],
+        motive: '与死者素来有矛盾，曾杀害赵氏集团董事长夫妻及其子，如果这件事被死者察觉，也有可能会畏罪将其杀害。'
+    }, {
+        id: 'zhao',
+        name: '赵筝',
+        room: '管家房间',
+        avatar: 'pic5.jpg',
+        color: '#5B6B7A',
+        timeline: [
+            '17:00——17:45 在储物间清点物品',
+            '17:45——18:10 在房间工作',
+            '18:10——18:20 在厨房和厨师交谈工作',
+            '18:30——19:00 在房间工作'
+        ],
+        evidence: [
+            { text: '赵氏集团案件资料' },
+            { text: '一份案件报道剪报' },
+            { text: '全家福照片' },
+            { text: '一个刻着“赵”的镇纸' }
+        ],
+        motive: '来这里工作是为了调查当年的案件，如果误认为死者是凶手，有可能会因为想要复仇将其杀害。'
+    }, {
+        id: 'dai',
+        name: '戴纾',
+        room: '储物间',
+        avatar: 'pic6.jpg',
+        color: '#6B7A5B',
+        timeline: [
+            '17:30 到达别墅，开始工作',
+            '17:30——17:45 打扫大厅',
+            '17:45——18:00 整理储物间',
+            '18:00——18:30 打扫书房',
+            '18:30——19:00 打扫主次卧及客房'
+        ],
+        evidence: [
+            { text: '威胁邮件和可疑录音' },
+            { text: '今天18:10拍摄的死者电脑文件照片' },
+            { text: '冯志远的警察证' },
+            { text: '尸体发现地状况', img: 'picc2.jpg' },
+            { text: '锋利小刀' }
+        ],
+        motive: '曾意外导致一名警察死亡，并掩埋罪证。而这个致命的把柄握在死者手中，有可能会杀死者灭口。'
+    }, {
+        id: 'feng',
+        name: '冯颖',
+        room: '厨房',
+        avatar: 'pic7.jpg',
+        color: '#6B5B7A',
+        timeline: [
+            '17:00——17:05 去书房给死者送咖啡',
+            '17:05——17:30 在厨房备菜',
+            '17:30——18:00 在书房与死者核对今晚菜单，交流工作事宜',
+            '18:00——19:00 在厨房准备晚餐（期间曾与管家交流工作）'
+        ],
+        evidence: [
+            { text: 'S市警察局笔记本' },
+            { text: '嫌疑人与冯志远多年前的合照' },
+            { text: '收集死者行程及个人习惯' },
+            { text: '携带镇静类药品' }
+        ],
+        motive: '怀疑死者是当年冯志远调查的赵氏集团谋杀案的真凶。如果认为死者当年畏罪，伤害冯志远，可能会因为复仇而杀害死者。'
+    }, {
+        id: 'lu',
+        name: '卢华辑',
+        room: '客房',
+        avatar: 'pic8.jpg',
+        color: '#7A6B5B',
+        timeline: [
+            '17:05——17:25 在书房和死者交谈',
+            '17:25——18:00 在别墅附近散步',
+            '18:00——18:20 在大厅闲逛',
+            '18:20——19:00 在客房工作'
+        ],
+        evidence: [
+            { text: '有关信息泄露案件的剪报本' },
+            { text: '曾向戴纾寄送暴龙手机' },
+            { text: '调查死者身边人员' },
+            { text: '申请空壳公司，伪造项目合作书，接近死者' }
+        ],
+        motive: '动机较弱'
+    }, {
+        id: 'study',
+        name: null,
+        room: '书房',
+        avatar: null,
+        color: '#5B5B4B',
+        timeline: null,
+        evidence: [
+            { text: '椅背顶部有被擦除的血迹', img: 'study4.jpg' },
+            { text: '书房有通往储物间的地道' }
+        ],
+        motive: null
+    }];
+
+    /* ============================================================
+     *  3. 题目渲染与交互
+     * ============================================================ */
+    const quizSection = document.getElementById('quiz-section');
+    const resultSection = document.getElementById('result-section');
+    const verdictTitle = document.getElementById('verdict-title');
+
+    const answers = new Array(QUESTIONS.length).fill(null);
+
+    function buildQuiz() {
+        let html = '';
+        QUESTIONS.forEach((q, qi) => {
+            html += '<div class="question-card">';
+            html += '<div class="question-title"><span class="q-num">' + (qi + 1) + '</span><span>' + q.title +
+                '</span></div>';
+            html += '<div class="options" data-qindex="' + qi + '">';
+            q.options.forEach(opt => {
+                html += '<button type="button" class="option" data-value="' + opt[0] + '">' +
+                    '<span class="letter">' + opt[0] + '</span><span>' + opt[1] + '</span></button>';
+            });
+            html += '</div></div>';
+        });
+
+        html += '<div id="submit-wrap">';
+        html += '<button type="button" id="submit-btn" disabled>确 定 提 交</button>';
+        html += '<div id="submit-hint">请完成全部三题后再提交</div>';
+        html += '</div>';
+
+        quizSection.innerHTML = html;
+
+        quizSection.querySelectorAll('.options').forEach(group => {
+            const qi = parseInt(group.dataset.qindex, 10);
+            group.querySelectorAll('.option').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    group.querySelectorAll('.option').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    answers[qi] = btn.dataset.value;
+                    updateSubmitState();
+                });
+            });
+        });
+
+        document.getElementById('submit-btn').addEventListener('click', submitAnswers);
+    }
+
+    function updateSubmitState() {
+        const btn = document.getElementById('submit-btn');
+        const hint = document.getElementById('submit-hint');
+        if (!btn || !hint) return;
+        const done = answers.every(a => a !== null);
+        btn.disabled = !done;
+        hint.textContent = done ? '确认无误后提交，提交后不可修改' : '请完成全部三题后再提交';
+        hint.style.color = done ? '#8b5a2b' : '#a1835f';
+    }
+
+    function submitAnswers() {
+        if (!answers.every(a => a !== null)) return;
+
+        const correct = answers.map((a, i) => a === QUESTIONS[i].answer);
+        const q1 = correct[0];
+        const restAll = correct[1] && correct[2];
+        const restAny = correct[1] || correct[2];
+
+        let title;
+        if (q1 && restAll) {
+            title = VERDICTS.perfect;
+        } else if (q1) {
+            title = VERDICTS.firstRight;
+        } else if (restAll) {
+            title = VERDICTS.firstWrong;
+        } else if (!restAny) {
+            title = VERDICTS.allWrong;
+        } else {
+            title = VERDICTS.firstWrong;
+        }
+
+        verdictTitle.textContent = title;
+
+        quizSection.style.opacity = '0';
+        quizSection.style.transform = 'translateY(-14px)';
+
+        setTimeout(function() {
+            quizSection.style.display = 'none';
+            resultSection.classList.add('show');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 360);
+    }
+
+    /* ============================================================
+     *  4. 侦探助手
+     * ============================================================ */
+    const assistantOverlay = document.getElementById('assistant-overlay');
+    const assistantClose = document.getElementById('assistant-close');
+    const tabColumn = document.getElementById('tab-column');
+    const assistantContent = document.getElementById('assistant-content');
+    const magnifierBtn = document.getElementById('magnifier-btn');
+
+    const imageViewer = document.getElementById('image-viewer');
+    const viewerImg = document.getElementById('viewer-img');
+    const viewerClose = document.getElementById('viewer-close');
+
+    let currentTabId = suspectsData[0].id;
+
+    function renderTabs() {
+        tabColumn.innerHTML = '';
+        suspectsData.forEach(s => {
+            const tab = document.createElement('div');
+            tab.className = 'tab-item' + (s.id === currentTabId ? ' active' : '');
+            tab.style.background = s.color;
+            tab.textContent = s.name || s.room;
+            tab.addEventListener('click', () => {
+                currentTabId = s.id;
+                renderTabs();
+                renderContent();
+            });
+            tabColumn.appendChild(tab);
+        });
+    }
+
+    function renderContent() {
+        const s = suspectsData.find(d => d.id === currentTabId);
+        if (!s) return;
+
+        let html = '';
+
+        // 头像 / 姓名
+        html += '<div class="profile-section">';
+        if (s.avatar) {
+            html += '<img class="profile-avatar" src="' + s.avatar + '" alt="' + s.name + '">';
+        } else {
+            html += '<div class="profile-avatar placeholder">📖</div>';
+        }
+        html += '<div class="profile-info">';
+        html += '<div class="profile-name">' + (s.name || s.room) + '</div>';
+        html += '<div class="profile-room"><span class="icon">🚪</span>' + s.room + '</div>';
+        html += '</div></div>';
+
+        // 时间线
+        if (s.timeline && s.timeline.length) {
+            html += '<div class="info-block">';
+            html += '<div class="section-label">🕒 时间线</div>';
+            html += '<ul class="timeline-list">';
+            s.timeline.forEach(t => {
+                html += '<li>' + t + '</li>';
+            });
+            html += '</ul></div>';
+        }
+
+        // 证据
+        html += '<div class="info-block">';
+        html += '<div class="section-label">📜 证据</div>';
+        html += '<div class="evidence-list">';
+        s.evidence.forEach(e => {
+            html += '<div class="evidence-item">';
+            html += '<span class="dot-indicator" style="background:' + s.color + ';"></span>';
+            html += '<span class="evidence-text">' + e.text;
+            if (e.img) {
+                html += '<span class="view-hint" data-img="' + e.img + '">（点击可查看）</span>';
+            }
+            html += '</span></div>';
+        });
+        html += '</div></div>';
+
+        // 动机
+        if (s.motive) {
+            html += '<div class="info-block">';
+            html += '<div class="section-label">🎯 动机</div>';
+            html += '<div class="motive-text">' + s.motive + '</div>';
+            html += '</div>';
+        }
+
+        assistantContent.innerHTML = html;
+
+        assistantContent.querySelectorAll('.view-hint').forEach(el => {
+            el.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+                openImageViewer(el.dataset.img);
+            });
+        });
+    }
+
+    function openAssistant() {
+        assistantOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        renderTabs();
+        renderContent();
+    }
+
+    function closeAssistant() {
+        assistantOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    magnifierBtn.addEventListener('click', openAssistant);
+    assistantClose.addEventListener('click', closeAssistant);
+    assistantOverlay.addEventListener('click', function(e) {
+        if (e.target === assistantOverlay) closeAssistant();
+    });
+
+    /* ============================================================
+     *  5. 图片查看器
+     * ============================================================ */
+    function openImageViewer(src) {
+        viewerImg.src = src;
+        imageViewer.classList.add('active');
+    }
+
+    function closeImageViewer() {
+        imageViewer.classList.remove('active');
+        viewerImg.src = '';
+    }
+
+    viewerClose.addEventListener('click', closeImageViewer);
+    imageViewer.addEventListener('click', function(e) {
+        if (e.target === imageViewer || e.target === viewerImg) {
+            // 点击图片本身不关闭，只有点击遮罩或按钮才关闭
+            if (e.target === imageViewer) closeImageViewer();
+        }
+    });
+
+    /* ============================================================
+     *  6. 初始化
+     * ============================================================ */
+    function init() {
+        buildQuiz();
+        updateSubmitState();
+        renderTabs();
+
+        // 结局按钮：跳转到 end.html
+        const endingBtn = document.getElementById('ending-btn');
+        if (endingBtn) {
+            endingBtn.addEventListener('click', function() {
+                window.location.href = 'end.html';
+            });
+        }
+    }
+
+    if (document.readyState === 'complete') {
+        init();
+    } else {
+        window.addEventListener('load', init);
+    }
+
+})();
+</script>
+</body>
+</html>

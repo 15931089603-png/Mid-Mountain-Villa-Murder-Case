@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>审讯 · 夜莺别墅命案</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+  background:#1a1a2e;min-height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;user-select:none;
+}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(139,90,43,.3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(139,90,43,.55)}
+
+/* ========== 主容器 ========== */
+.main-container{
+  width:100%;max-width:960px;
+  height:92vh;max-height:880px;
+  background:#f5f0eb;border-radius:28px;
+  box-shadow:0 20px 40px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;
+  position:relative;overflow:hidden;
+  border:1px solid rgba(255,255,255,.2);
+}
+
+/* ========== 顶部角色按钮 ========== */
+.char-buttons{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;
+  padding:14px 12px 8px;
+  background:rgba(255,255,240,.7);
+  backdrop-filter:blur(6px);
+  border-bottom:1px solid #d9cdb8;
+  flex-shrink:0;
+}
+.char-btn{
+  background:#e8dccf;border:none;padding:10px 18px;
+  border-radius:22px;font-size:15px;font-weight:500;
+  letter-spacing:1px;color:#3e2e1f;cursor:pointer;
+  transition:all .2s;box-shadow:0 2px 4px rgba(0,0,0,.1);
+  white-space:nowrap;font-family:inherit;position:relative;
+}
+.char-btn.active{
+  background:#8b5a2b;color:#fff;
+  box-shadow:0 4px 10px rgba(107,68,35,.4);
+}
+.char-btn:active{transform:scale(.96)}
+.char-btn.solved::after{
+  content:'✓';position:absolute;top:-3px;right:-3px;
+  width:16px;height:16px;line-height:16px;font-size:10px;
+  background:#5a9e6f;color:#fff;border-radius:50%;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+
+/* ========== 压力条 ========== */
+.pressure-row{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 20px 10px;
+  background:rgba(255,255,240,.5);
+  border-bottom:1px solid #e2d7c5;
+  flex-shrink:0;
+}
+.pressure-label{
+  font-size:12px;color:#8b7355;letter-spacing:2px;white-space:nowrap;
+}
+.pressure-track{
+  flex:1;height:9px;border-radius:999px;
+  background:#e2d7c5;overflow:hidden;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.18);
+}
+.pressure-fill{
+  height:100%;width:0%;border-radius:999px;
+  background:linear-gradient(90deg,#b8823f,#d8a34d,#f0c060);
+  box-shadow:0 0 10px rgba(216,163,77,.7);
+  transition:width .9s cubic-bezier(.2,.9,.3,1);
+}
+.pressure-num{
+  font-family:ui-monospace,Menlo,monospace;
+  font-size:13px;color:#8b5a2b;min-width:42px;text-align:right;font-weight:700;
+}
+
+/* ========== 交互区 ========== */
+.interact-area{
+  display:flex;flex:1;min-height:0;position:relative;
+}
+
+/* 左侧人物 */
+.character-display{
+  width:140px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-end;
+  padding:20px 8px 30px;
+  background:#fff;border-right:1px solid #e0d6c8;
+  flex-shrink:0;
+}
+.char-image{
+  width:100%;max-width:110px;height:auto;
+  object-fit:contain;
+  filter:drop-shadow(0 4px 12px rgba(139,90,43,.2));
+  margin-bottom:12px;
+  animation:charFloat 5s ease-in-out infinite;
+}
+@keyframes charFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-5px)}
+}
+.char-name{
+  font-size:17px;font-weight:bold;color:#2e2416;
+  letter-spacing:2px;text-align:center;min-height:24px;
+}
+
+/* 右侧聊天区 */
+.chat-area{
+  flex:1;display:flex;flex-direction:column;
+  background:#faf7f2;min-width:0;
+}
+.messages-container{
+  flex:1;overflow-y:auto;
+  padding:20px 16px 10px;
+  display:flex;flex-direction:column;gap:14px;
+}
+
+/* 消息行 */
+.message-row{
+  display:flex;width:100%;
+  animation:fadeInUp .3s;
+}
+.message-row.player{justify-content:flex-end}
+.message-row.npc{justify-content:flex-start}
+.message-row.doubt{justify-content:flex-end}
+.message-row.system{justify-content:center}
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.bubble{
+  max-width:80%;padding:12px 16px;border-radius:20px;
+  font-size:15px;line-height:1.7;word-break:break-word;
+  letter-spacing:.4px;transition:box-shadow .2s,background .2s;
+}
+.player .bubble{
+  background:#8b5a2b;color:#fff;
+  border-bottom-right-radius:6px;
+  box-shadow:0 3px 8px rgba(139,90,43,.25);
+}
+.npc .bubble{
+  background:#e7dbcc;color:#2e2416;
+  border-bottom-left-radius:6px;
+  box-shadow:0 2px 5px rgba(0,0,0,.06);
+}
+.doubt .bubble{
+  background:linear-gradient(135deg,#c0392b,#96281b);
+  color:#ffe8e3;border-bottom-right-radius:6px;
+  box-shadow:0 4px 14px rgba(192,57,43,.4);
+  font-weight:600;
+}
+.system .bubble{
+  background:rgba(139,90,43,.08);
+  border:1px dashed rgba(139,90,43,.3);
+  color:#8b5a2b;font-size:13px;text-align:center;
+  letter-spacing:1px;padding:8px 20px;
+}
+
+.bubble.clickable{cursor:pointer}
+.bubble.clickable:hover{
+  box-shadow:0 0 0 2px rgba(139,90,43,.35),0 2px 8px rgba(0,0,0,.15);
+}
+.npc .bubble.selected{
+  background:#f5e8d3;
+  box-shadow:0 0 0 3px #d8a34d,0 4px 16px rgba(216,163,77,.5);
+}
+
+/* 关键信息：未标记时与正文完全一致 */
+.keyword{
+  color:inherit;
+  cursor:pointer;
+  border-radius:3px;
+  padding:0;
+  transition:background .25s,color .25s,padding .25s,box-shadow .25s;
+}
+.keyword.marked{
+  background:#ffd966;
+  color:#5c3d0e;
+  padding:1px 5px;
+  cursor:default;
+  box-shadow:0 0 10px rgba(255,217,102,.75);
+  animation:keyPop .55s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes keyPop{
+  0%{transform:scale(1.3);background:#ffe89a}
+  100%{transform:scale(1)}
+}
+
+/* ========== 证据栏 ========== */
+.evidence-bar{
+  display:flex;gap:8px;padding:10px 14px;
+  border-top:1px solid #e8ded0;
+  overflow-x:auto;flex-shrink:0;
+  background:rgba(255,255,245,.85);
+}
+.evidence-bar::-webkit-scrollbar{height:4px}
+.ev-btn{
+  padding:9px 16px;border-radius:20px;
+  border:1px solid #c8b89a;background:#fff;
+  color:#5a4632;font-size:13px;cursor:pointer;
+  white-space:nowrap;transition:.2s;font-family:inherit;
+  box-shadow:0 2px 5px rgba(0,0,0,.04);
+  position:relative;
+}
+.ev-btn::before{
+  content:'📄';margin-right:5px;font-size:12px;
+}
+.ev-btn:hover{
+  border-color:#8b5a2b;color:#8b5a2b;
+  transform:translateY(-1px);
+  box-shadow:0 4px 10px rgba(139,90,43,.18);
+}
+.ev-btn.selected{
+  background:#8b5a2b;border-color:#8b5a2b;color:#fff;
+  box-shadow:0 4px 12px rgba(107,68,35,.4);
+}
+.ev-btn.selected::before{content:'📌'}
+.ev-btn.done{opacity:.45}
+.ev-btn.done::after{content:' ✓';color:#5a9e6f;font-weight:700}
+.ev-btn.done.selected::after{color:#b8f0c8}
+
+/* ========== 操作栏 ========== */
+.action-bar{
+  display:flex;gap:10px;align-items:center;
+  padding:10px 14px 14px;flex-shrink:0;
+  background:rgba(255,255,245,.85);
+  border-top:1px solid #e8ded0;
+}
+.action-bar-right{
+  margin-left:auto;display:flex;gap:10px;
+}
+.action-btn{
+  padding:12px 26px;border-radius:24px;
+  font-size:14px;font-family:inherit;font-weight:600;
+  letter-spacing:2px;cursor:pointer;transition:.22s;
+  border:none;
+}
+.btn-interrogate{
+  background:#8b5a2b;color:#fff;
+  box-shadow:0 4px 12px rgba(107,68,35,.3);
+}
+.btn-interrogate:hover:not(:disabled){
+  background:#a06a35;transform:translateY(-2px);
+  box-shadow:0 6px 18px rgba(107,68,35,.45);
+}
+.btn-interrogate:disabled{
+  opacity:.4;cursor:not-allowed;box-shadow:none;
+}
+.btn-doubt{
+  background:#fff;color:#c0392b;
+  border:2px solid #c0392b;
+  box-shadow:0 4px 12px rgba(192,57,43,.15);
+}
+.btn-doubt:hover:not(:disabled){
+  background:#c0392b;color:#fff;
+  transform:translateY(-2px);
+  box-shadow:0 6px 18px rgba(192,57,43,.45);
+}
+.btn-doubt:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.btn-doubt.pulse{animation:doubtPulse 1.6s ease-in-out infinite}
+@keyframes doubtPulse{
+  0%,100%{box-shadow:0 4px 12px rgba(192,57,43,.15)}
+  50%{box-shadow:0 0 26px rgba(192,57,43,.75)}
+}
+.btn-reason{
+  background:linear-gradient(135deg,#d8a34d,#b8823f);
+  color:#fff;
+  box-shadow:0 4px 14px rgba(184,130,63,.4);
+  animation:reasonGlow 2.2s ease-in-out infinite;
+}
+@keyframes reasonGlow{
+  0%,100%{box-shadow:0 4px 14px rgba(184,130,63,.4)}
+  50%{box-shadow:0 6px 28px rgba(216,163,77,.9)}
+}
+.btn-reason:hover{transform:translateY(-2px) scale(1.03)}
+.btn-final{
+  background:linear-gradient(135deg,#c0392b,#e74c3c);
+  color:#fff;
+  box-shadow:0 4px 14px rgba(192,57,43,.4);
+  animation:finalGlow 2s ease-in-out infinite;
+}
+@keyframes finalGlow{
+  0%,100%{box-shadow:0 4px 14px rgba(192,57,43,.4)}
+  50%{box-shadow:0 6px 28px rgba(231,76,60,.9)}
+}
+.btn-final:hover{transform:translateY(-2px) scale(1.03)}
+
+/* ========== 底部信息 ========== */
+.bottom-info{
+  flex-shrink:0;
+  background:rgba(255,255,240,.6);
+  border-top:1px solid #e2d7c5;
+  padding:6px 0 8px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.footer-credit{
+  font-size:11px;color:#9b8b7a;letter-spacing:1px;
+}
+.footer-hint{
+  font-size:12px;color:#8b7355;letter-spacing:1px;
+}
+
+/* ========== 连击 ========== */
+.combo{
+  position:fixed;top:60px;right:60px;z-index:600;
+  font-size:44px;font-weight:900;letter-spacing:2px;
+  color:#ff8a3d;pointer-events:none;opacity:0;
+  text-shadow:
+    0 0 20px rgba(255,138,61,.9),
+    0 0 44px rgba(255,100,30,.7),
+    0 4px 0 #a34812;
+}
+.combo.show{animation:comboAnim 5s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes comboAnim{
+  0%{transform:scale(0) rotate(-25deg);opacity:0}
+  8%{transform:scale(1.35) rotate(7deg);opacity:1}
+  15%{transform:scale(.95) rotate(-4deg)}
+  21%{transform:scale(1.12) rotate(3deg)}
+  27%{transform:scale(1) rotate(0);opacity:1}
+  82%{transform:scale(1) rotate(0);opacity:1}
+  100%{transform:scale(1.2) rotate(0);opacity:0}
+}
+
+/* ========== Toast ========== */
+.toast{
+  position:fixed;bottom:120px;left:50%;z-index:800;
+  transform:translateX(-50%) translateY(14px);
+  padding:12px 28px;border-radius:22px;
+  background:rgba(44,36,22,.97);
+  border:1px solid #c49a6c;
+  color:#f0e6d2;font-size:14px;letter-spacing:1px;
+  opacity:0;transition:.35s;pointer-events:none;
+  box-shadow:0 16px 40px rgba(0,0,0,.6);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.fail{
+  border-color:#c0392b;color:#ffb0a6;
+  background:rgba(46,16,12,.97);
+}
+
+/* ========== 推理弹窗 ========== */
+.modal{
+  position:fixed;inset:0;z-index:900;
+  display:flex;align-items:center;justify-content:center;
+  padding:24px;
+  background:rgba(0,0,0,.82);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  opacity:0;visibility:hidden;transition:.45s;
+}
+.modal.show{opacity:1;visibility:visible}
+.modal-box{
+  width:100%;max-width:1000px;max-height:90vh;
+  display:flex;flex-direction:column;
+  border-radius:26px;
+  background:#2c2416;color:#f0e6d2;
+  border:1px solid #6b5a44;
+  box-shadow:0 40px 100px rgba(0,0,0,.8);
+  overflow:hidden;
+  transform:translateY(20px) scale(.97);
+  transition:transform .5s cubic-bezier(.2,.9,.3,1);
+}
+.modal.show .modal-box{transform:translateY(0) scale(1)}
+.modal-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 28px;flex-shrink:0;
+  border-bottom:1px solid #4a3d29;
+}
+.modal-title{
+  font-size:21px;letter-spacing:6px;color:#e8c98a;font-weight:700;
+}
+.modal-sub{font-size:11.5px;letter-spacing:2px;color:#8b7a5f;margin-top:5px}
+.modal-close{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #6b5a44;background:transparent;
+  color:#b8a382;font-size:16px;cursor:pointer;
+  transition:.22s;font-family:inherit;
+}
+.modal-close:hover{
+  border-color:#e8c98a;color:#e8c98a;transform:rotate(90deg);
+}
+.modal-body{
+  flex:1;overflow-y:auto;padding:30px 36px 18px;
+}
+.reason-line{
+  font-size:17px;line-height:2.25;letter-spacing:.4px;
+  color:#c8bba3;margin-bottom:20px;display:none;
+}
+.reason-line.show{
+  display:block;
+  animation:lineIn .7s cubic-bezier(.2,.9,.3,1) both;
+}
+@keyframes lineIn{
+  from{opacity:0;transform:translateY(14px);filter:blur(5px)}
+  to{opacity:1;transform:translateY(0);filter:blur(0)}
+}
+.reason-line.final{color:#ff9e7a;text-shadow:0 0 22px rgba(255,140,90,.35)}
+.reason-line.final .slot.filled{color:#ffb08c;text-shadow:0 0 16px rgba(255,150,100,.6)}
+
+.slot{
+  display:inline-block;vertical-align:baseline;
+  min-width:88px;padding:0 9px 2px;margin:0 3px;
+  border-bottom:1.5px dashed rgba(232,201,138,.5);
+  background:rgba(232,201,138,.08);
+  border-radius:5px 5px 0 0;text-align:center;
+  transition:.22s;color:#c8bba3;cursor:pointer;
+}
+.slot:empty::before{
+  content:'?';font-size:13px;color:rgba(232,201,138,.4);
+}
+.slot:hover:not(.filled){
+  background:rgba(232,201,138,.2);
+  border-bottom-color:#e8c98a;
+}
+.slot.over{
+  background:rgba(232,201,138,.28);
+  border-bottom-color:#e8c98a;
+  box-shadow:0 8px 24px -8px rgba(232,201,138,.9);
+}
+.slot.wrong{
+  background:rgba(226,86,77,.28);
+  border-bottom-color:#e2564d;color:#ff9c90;
+  animation:slotShake .45s cubic-bezier(.36,.07,.19,.97);
+}
+@keyframes slotShake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+.slot.filled{
+  min-width:0;padding:0 3px;margin:0 1px;
+  border-bottom-color:transparent;background:transparent;
+  color:#e8c98a;cursor:default;
+  animation:inkIn 1s ease-out forwards;
+}
+@keyframes inkIn{
+  0%{
+    color:#fff6d0;
+    text-shadow:0 0 26px rgba(232,201,138,1),0 0 10px rgba(232,201,138,.9);
+    background:rgba(232,201,138,.25);
+  }
+  50%{
+    color:#f5dfa8;
+    text-shadow:0 0 14px rgba(232,201,138,.5);
+    background:rgba(232,201,138,.08);
+  }
+  100%{
+    color:#e8c98a;
+    text-shadow:0 0 8px rgba(232,201,138,.35);
+    background:transparent;
+  }
+}
+
+.choice-row{
+  display:none;gap:10px;margin:-8px 0 20px;padding-left:8px;
+  flex-wrap:wrap;
+}
+.choice-row.show{display:flex;animation:lineIn .5s ease both}
+.choice-btn{
+  padding:9px 20px;border-radius:20px;
+  border:1px solid #6b5a44;background:rgba(232,201,138,.06);
+  color:#d6c6a8;font-size:14px;cursor:pointer;
+  transition:.22s;font-family:inherit;
+}
+.choice-btn:hover{
+  border-color:#e8c98a;color:#fff3d0;
+  background:rgba(232,201,138,.18);transform:translateY(-2px);
+}
+.choice-btn.bad{
+  border-color:#e2564d;color:#ff9c90;
+  animation:slotShake .45s;
+}
+
+.modal-tray{
+  display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;
+  padding:18px 36px;flex-shrink:0;
+  border-top:1px solid #4a3d29;
+  background:rgba(0,0,0,.25);min-height:100px;
+}
+.tray-label{
+  font-size:11px;letter-spacing:4px;color:#8b7a5f;
+  padding-right:18px;border-right:1px solid #4a3d29;margin-right:4px;
+}
+
+.reason-piece{
+  padding:10px 18px;border-radius:10px;
+  border:1px solid rgba(232,201,138,.4);
+  background:linear-gradient(180deg,#3d3524,#2a2418);
+  color:#f0e6d2;font-size:14.5px;letter-spacing:.4px;
+  cursor:pointer;white-space:nowrap;
+  box-shadow:0 8px 22px rgba(0,0,0,.55);
+  transition:.24s;
+  animation:pieceFloat 5.4s ease-in-out infinite;
+  animation-delay:var(--pd,0s);
+}
+@keyframes pieceFloat{
+  0%,100%{transform:translateY(0) rotate(var(--pr,0deg))}
+  50%{transform:translateY(-6px) rotate(var(--pr,0deg))}
+}
+.reason-piece:hover{
+  border-color:#e8c98a;
+  box-shadow:0 14px 32px rgba(0,0,0,.7),0 0 24px rgba(232,201,138,.3);
+}
+.reason-piece.selected{
+  border-color:#e8c98a;
+  background:linear-gradient(180deg,#5a4a2c,#3d321e);
+  box-shadow:0 0 0 2px #e8c98a,0 12px 30px rgba(232,201,138,.5);
+  animation:pieceSelected 1.4s ease-in-out infinite;
+}
+@keyframes pieceSelected{
+  0%,100%{box-shadow:0 0 0 2px #e8c98a,0 8px 22px rgba(232,201,138,.4)}
+  50%{box-shadow:0 0 0 2px #ffe6b0,0 12px 34px rgba(232,201,138,.85)}
+}
+.reason-piece.photo{
+  padding:0;border:0;background:none;box-shadow:none;
+}
+.reason-piece.photo:hover{
+  box-shadow:none;
+  transform:translateY(-6px) rotate(var(--pr,0deg));
+}
+.reason-piece.photo.selected .rp-photo{
+  box-shadow:0 0 0 3px #e8c98a,0 16px 34px -8px rgba(0,0,0,.9),
+             0 0 26px rgba(232,201,138,.7);
+  transform:translateY(-6px);
+}
+.rp-photo{
+  position:relative;width:96px;padding:7px 7px 24px;
+  background:linear-gradient(168deg,#f6f1e5,#ddd4bf);
+  border-radius:2px;
+  box-shadow:0 14px 28px -8px rgba(0,0,0,.85),0 3px 8px rgba(0,0,0,.5),
+             inset 0 1px 0 rgba(255,255,255,.95);
+  transition:.28s;
+}
+.rp-photo::before{
+  content:'';position:absolute;top:-10px;left:50%;
+  transform:translateX(-50%) rotate(-2deg);
+  width:52px;height:19px;
+  background:linear-gradient(180deg,rgba(232,220,188,.7),rgba(203,189,153,.45));
+  border-left:1px solid rgba(255,255,255,.4);
+  border-right:1px solid rgba(255,255,255,.4);
+  box-shadow:0 2px 7px rgba(0,0,0,.45);
+}
+.rp-photo img{
+  display:block;width:100%;aspect-ratio:4/3;
+  object-fit:cover;border-radius:1px;background:#3a3a2e;
+}
+.rp-cap{
+  position:absolute;left:7px;right:7px;bottom:6px;
+  font-size:9px;color:#6b6049;text-align:center;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:ui-monospace,Menlo,monospace;
+}
+.reason-piece.used{
+  opacity:0;transform:scale(.7) rotate(-6deg);pointer-events:none;
+}
+.reason-piece.reject{animation:pieceShake .4s}
+@keyframes pieceShake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-8px)}
+  75%{transform:translateX(8px)}
+}
+
+.modal-foot{
+  display:flex;justify-content:flex-end;
+  padding:14px 36px 22px;flex-shrink:0;
+}
+.modal-finish{
+  padding:14px 44px;border-radius:28px;
+  border:1px solid #e8c98a;
+  background:linear-gradient(180deg,rgba(232,201,138,.3),rgba(232,201,138,.1));
+  color:#fff3d0;font-size:15px;font-family:inherit;
+  letter-spacing:5px;text-indent:5px;font-weight:700;
+  cursor:not-allowed;opacity:.3;transition:.3s;
+}
+.modal-finish.ready{
+  cursor:pointer;opacity:1;
+  box-shadow:0 0 40px rgba(232,201,138,.6);
+  animation:finGlow 2s ease-in-out infinite;
+}
+@keyframes finGlow{
+  0%,100%{box-shadow:0 0 22px rgba(232,201,138,.35)}
+  50%{box-shadow:0 0 52px rgba(232,201,138,.8)}
+}
+.modal-finish.ready:hover{transform:translateY(-2px) scale(1.03)}
+
+/* ========== 结局遮罩 ========== */
+.ending{
+  position:fixed;inset:0;z-index:1000;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 45%,rgba(232,201,138,.12),rgba(0,0,0,.94) 60%);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  opacity:0;visibility:hidden;transition:.6s;
+}
+.ending.show{opacity:1;visibility:visible}
+.ending-inner{
+  text-align:center;transform:translateY(16px);
+  transition:.8s cubic-bezier(.2,.9,.3,1);
+}
+.ending.show .ending-inner{transform:translateY(0)}
+.ending h2{
+  font-size:38px;font-weight:500;letter-spacing:10px;text-indent:10px;
+  color:#e8c98a;text-shadow:0 0 44px rgba(232,201,138,.5);
+  margin-bottom:16px;
+}
+.ending p{
+  font-size:13px;letter-spacing:4px;color:#8b7a5f;margin-bottom:36px;
+}
+.ending button{
+  padding:13px 36px;border-radius:28px;
+  border:1px solid rgba(232,201,138,.5);
+  background:rgba(232,201,138,.1);
+  color:#e8c98a;font-family:inherit;font-size:14px;
+  letter-spacing:3px;cursor:pointer;transition:.25s;
+}
+.ending button:hover{
+  background:rgba(232,201,138,.22);transform:translateY(-2px);
+}
+
+/* ========== 开场弹窗 ========== */
+.modal-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.82);
+  display:flex;align-items:center;justify-content:center;
+  z-index:100;backdrop-filter:blur(6px);
+}
+.modal-content{
+  background:#2c2416;color:#f0e6d2;
+  padding:30px 28px;border-radius:28px;
+  max-width:480px;width:90%;text-align:left;
+  box-shadow:0 20px 40px rgba(0,0,0,.7);
+  border:1px solid #6b5a44;line-height:1.9;font-size:14.5px;
+}
+.modal-content h3{
+  color:#e8c98a;font-size:19px;letter-spacing:4px;
+  margin-bottom:16px;font-weight:700;text-align:center;
+}
+.modal-content ol{
+  padding-left:20px;color:#d6c6a8;
+}
+.modal-content li{margin-bottom:6px;letter-spacing:.4px}
+.modal-content li b{color:#e8c98a}
+.modal-btn{
+  margin-top:22px;background:#c49a6c;border:none;
+  padding:12px 32px;border-radius:28px;font-size:15px;
+  font-weight:bold;color:#1e150c;letter-spacing:3px;
+  cursor:pointer;transition:.2s;font-family:inherit;
+  display:block;margin-left:auto;margin-right:auto;
+}
+.modal-btn:active{background:#b3824e;transform:scale(.96)}
+
+/* ========== 响应式 ========== */
+@media (max-width:768px){
+  body{padding:8px}
+  .main-container{
+    height:96vh;max-height:none;border-radius:20px;
+  }
+  .char-buttons{padding:10px 8px 6px;gap:6px}
+  .char-btn{padding:8px 13px;font-size:13.5px;letter-spacing:.5px}
+  .pressure-row{padding:6px 14px 8px}
+  .character-display{width:96px;padding:14px 6px 22px}
+  .char-image{max-width:72px;margin-bottom:8px}
+  .char-name{font-size:14px;letter-spacing:1px}
+  .messages-container{padding:14px 10px 8px;gap:11px}
+  .bubble{font-size:14px;padding:10px 13px;max-width:88%}
+  .evidence-bar{padding:8px 10px;gap:6px}
+  .ev-btn{padding:8px 13px;font-size:12px}
+  .action-bar{padding:8px 10px 12px;gap:8px}
+  .action-btn{padding:11px 18px;font-size:13px;letter-spacing:1px}
+  .btn-reason,.btn-final{letter-spacing:1px;padding:11px 16px}
+  .combo{font-size:30px;right:16px;top:auto;bottom:140px}
+  .modal{padding:12px}
+  .modal-body{padding:20px 18px 12px}
+  .reason-line{font-size:14.5px;line-height:2.05;margin-bottom:15px}
+  .modal-tray{padding:14px 18px;min-height:86px;gap:10px}
+  .modal-head{padding:16px 18px}
+  .modal-title{font-size:17px;letter-spacing:4px}
+  .modal-foot{padding:10px 18px 16px}
+  .modal-finish{padding:12px 30px;font-size:13.5px;letter-spacing:3px}
+  .rp-photo{width:82px}
+  .reason-piece{font-size:13px;padding:9px 14px}
+  .ending h2{font-size:26px;letter-spacing:6px}
+  .toast{font-size:13px;padding:10px 22px;bottom:100px}
+}
+@media (max-width:420px){
+  .character-display{width:80px;padding:10px 4px 16px}
+  .char-image{max-width:58px}
+  .char-name{font-size:12.5px}
+  .char-btn{padding:7px 10px;font-size:12px}
+  .ev-btn{padding:7px 11px;font-size:11px}
+  .action-btn{padding:10px 14px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- ========== 开场弹窗 ========== -->
+<div class="modal-overlay" id="introModal">
+  <div class="modal-content">
+    <h3>操 作 说 明</h3>
+    <ol>
+      <li>选中下方<b>证据</b> → 点击 <b>审讯</b>，嫌疑人会作出回答。</li>
+      <li>嫌疑人的证词中包含<b>关键信息</b>，找出并点击标黄，收集关键信息可增加压力值。</li>
+      <li>选中一条嫌疑人的<b>回答气泡</b> → 点击 <b>质疑！！！</b> 可击破破绽（加压力值）。</li>
+      <li>压力拉满后可进入 <b>推理时刻</b>，点击线索气泡再点击空白处填入。</li>
+      <li>所有嫌疑人审讯完毕后，点击 <b>最终推理</b>。</li>
+    </ol>
+    <button class="modal-btn" id="closeModalBtn">开始审讯</button>
+  </div>
+</div>
+
+<!-- ========== 主容器 ========== -->
+<div class="main-container">
+
+  <!-- 嫌疑人标签 -->
+  <div class="char-buttons" id="charButtons"></div>
+
+  <!-- 压力值 -->
+  <div class="pressure-row">
+    <span class="pressure-label">压力值</span>
+    <div class="pressure-track"><div class="pressure-fill" id="pressureFill"></div></div>
+    <span class="pressure-num" id="pressureNum">0%</span>
+  </div>
+
+  <!-- 交互区 -->
+  <div class="interact-area">
+
+    <!-- 左侧人物 -->
+    <div class="character-display">
+      <img id="charImage" class="char-image" src="" alt="">
+      <div class="char-name" id="currentCharName">　</div>
+    </div>
+
+    <!-- 右侧聊天 -->
+    <div class="chat-area">
+      <div class="messages-container" id="messagesContainer"></div>
+      <div class="evidence-bar" id="evidenceBar"></div>
+      <div class="action-bar">
+        <button class="action-btn btn-interrogate" id="btnInterrogate">审 讯</button>
+        <button class="action-btn btn-doubt" id="btnDoubt">质疑！！！</button>
+        <div class="action-bar-right">
+          <button class="action-btn btn-reason" id="btnReason" style="display:none">推理时刻</button>
+          <button class="action-btn btn-final" id="btnFinal" style="display:none">最终推理</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-info">
+    <div class="footer-credit">©爆炒霸王龙🦖制作</div>
+    <div class="footer-hint">只有凶手会说谎，其他嫌疑人的话都可信</div>
+  </div>
+</div>
+
+<!-- 连击 -->
+<div class="combo" id="combo"></div>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ========== 推理弹窗 ========== -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">推理时刻</div>
+        <div class="modal-sub">点击线索气泡 · 再点击空白处填入</div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-tray" id="modalTray">
+      <span class="tray-label">线索池</span>
+    </div>
+    <div class="modal-foot">
+      <button class="modal-finish" id="modalFinish" disabled>推理完成</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 结局遮罩 ========== -->
+<div class="ending" id="ending">
+  <div class="ending-inner">
+    <h2>推理完成</h2>
+    <p>案件脉络已重构 · 真相浮出水面</p>
+    <button id="endingBack">继续审讯 →</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   数据
+   ========================================================= */
+const DATA = {
+shu:{
+  name:'舒代雄', pic:'pic4.jpg', slow:false, pressurePerAction:20,
+  evidence:[
+    { id:'shu-e1', label:'涂黑一半的合影',
+      q:'我在你的房间找到一张合照，其中死者的部分被涂黑了，你为什么要涂黑照片呢？',
+      a:'这张照片都好多年了，涂黑也是前些年不懂事干的，我哥老是管我，我俩确实有点矛盾，但这也不能说明我是凶手吧！',
+      aKey:'有点矛盾' },
+    { id:'shu-e2', label:'死者公司核心数据',
+      q:'我在你的电脑里找到了死者公司的核心数据，怎么，已经想好你哥死后来接班了？',
+      a:'我哥的事业做得好，老是打压我，我有点嫉妒他，想摸透他公司的信息，找机会压他一头。' },
+    { id:'shu-e3', label:'刻着"赵"的镇纸',
+      q:'我在你的桌子上看到了一个刻有"赵"字的镇纸，这是哪里来的？',
+      a:'啊？镇纸？东西太多，我都不记得了，可能是去哪里玩的时候随便买的吧。',
+      dq:'你可要对你说的话负责任，我在赵管家那里找到了一个同样的，据我了解，这个镇纸和赵氏集团脱不开关系吧。',
+      da:'这……我……这是我之前出门送外卖，在路上捡到的。',
+      dKey:'送外卖' },
+    { id:'shu-e4', label:'两个相同的U盘',
+      q:'我在你的房间里找到了两个相同的U盘，里面的内容都是死者公司和赵氏集团的合作项目资料，但是其中最核心的部分却有很大的差别，这个你要怎么解释？',
+      a:'我也说了，我和我哥确实有矛盾，我之前想把他的资料换成假的，最后没干成。',
+      dq:'你说你没干成，那么两个U盘怎么会都在你手里？',
+      da:'我掉包到一半，差点被发现就停手了，后来也没找到机会，两个U盘就一直在我这里。',
+      dKey:'掉包到一半' }
+  ],
+  reasoning:{
+    lines:[
+      {tpl:'舒代雄和死者{有点矛盾}，想要通过调包合作书搞砸死者的项目，但{掉包到一半}发生状况没有调包成功。'},
+      {tpl:'舒代雄手中有来自赵氏集团的镇纸，是在他{送外卖}时捡到的。'},
+      {tpl:'根据{案情记录}，赵氏集团一案中，除了舒代华以外，还有一名未查明身份的外卖员曾出现在案发现场附近。而舒代华的U盘是在进入死者家中之后丢失的。'},
+      {tpl:'所以，舒代雄当时极有可能在案发现场，他可能是杀害{赵氏集团董事长一家}的凶手！！！', final:true}
+    ],
+    pieces:[
+      {id:'有点矛盾', text:'有点矛盾', rot:'-2deg'},
+      {id:'掉包到一半', text:'掉包到一半', rot:'1.4deg'},
+      {id:'送外卖', text:'送外卖', rot:'-1.6deg'},
+      {id:'案情记录', text:'案情记录', photo:'pica1.jpg', rot:'2.2deg'}
+    ],
+    choices:[{id:'赵氏集团董事长一家', options:['舒代华','赵氏集团董事长一家','路易十六']}],
+    finalText:'舒代雄和死者有矛盾，想要通过调包合作书搞砸死者的项目，但掉包到一半发生状况没有调包成功。舒代雄手中有来自赵氏集团的镇纸，是在他送外卖时捡到的。根据案情记录，赵氏集团一案中，除了舒代华以外，还有一名未查明身份的外卖员曾出现在案发现场附近。而舒代华的U盘是在进入死者家中之后丢失的。所以，舒代雄当时极有可能在案发现场，他可能是杀害赵氏集团董事长一家的凶手！！！',
+    confess:'十年前，我装作外卖员尾随我哥，想找机会替换掉他的U盘。一直没有找到好时机，直到他把U盘留在了那个人家里。我想偷偷潜入，调换掉U盘就离开，没想到被那个男人发现了！他以为我是进来偷东西的小偷，威胁我要报警，激烈的争执下，我一不小心刺中了他的心脏。他的妻子孩子都看到了这一幕。我不想进监狱，当时一冲动，就把那个女人和小孩都杀掉，毁尸灭迹了。'
+  }
+},
+
+zhao:{
+  name:'赵筝', pic:'pic5.jpg', slow:false, pressurePerAction:25,
+  evidence:[
+    { id:'zhao-e1', label:'刻着"赵"的镇纸',
+      q:'我在你的抽屉里找到了一个刻着"赵"的镇纸，请问这是哪里来的？',
+      a:'啊？这是我曾祖父留下来的传家宝，原本应该有两个，但是另一个之前丢失了，请问这个东西有什么问题吗？',
+      extra:'我只是例行询问，你不需要考虑为什么，只要回答就可以。' },
+    { id:'zhao-e2', label:'一份案件报道剪报',
+      q:'我在你的房间发现了一份关于赵氏集团董事长夫妇及其子遇害的新闻剪报，你在关注这个案件？',
+      a:'关注新闻而已，没什么特别的？',
+      dq:'没有这么简单吧，那个镇纸，全家福以及你的身世，和这个案子都颇有渊源啊。',
+      da:'这……我就直说了，这起案子的受害人是我的父母和弟弟，当年我在外地读书，幸免于难，这个案子确实给我打击很大，这篇报道，我一直留着，但是也不敢打开。',
+      dKey:'受害人是我的父母和弟弟' },
+    { id:'zhao-e3', label:'赵氏集团案件资料',
+      q:'我在你的电脑上看见了很多关于当年案件的调查记录，其中包含了关于死者的信息，你来这里当管家就是为了调查这个案子，或者更具体地说，你怀疑死者是凶手？',
+      a:'怎么可能，我来这里当管家，纯粹是巧合，现在工作这么难找，能有个班上就不错了。',
+      dq:'我看可不一定吧！我这里有一份从别人那里查获的调查记录，里面显示你拒绝了很多高薪工作，怎么，放着钱不挣，就爱在这里当管家？',
+      da:'好吧，我的确还在追查那个案子，死者当天在案发前来过我家，是重要嫌疑人，但是我还没有找到充分的证据证明谁是凶手，在找到真正的凶手之前，我是不可能杀人的。',
+      dKey:'重要嫌疑人' },
+    { id:'zhao-e4', label:'全家福照片',
+      q:'我在你的桌子上，找到了一张全家福，背面写着，"我要替你们报仇"的字样，这个怎么说？',
+      a:'我的家人在之前的案子里全部遇害，我非常痛心，这句话不过是当时上头时写上去的，没必要当真。' }
+  ],
+  reasoning:{
+    lines:[
+      {tpl:'十年前案件的{受害人是我的父母和弟弟}，从{卢华辑的调查记录}中得知她为了来这里做管家，拒绝了很多高薪工作。'},
+      {tpl:'而死者是十年前案件的{重要嫌疑人}，所以赵筝来这里做管家是为了调查十年前的案件，并且她对死者抱有怀疑。'},
+      {tpl:'并且从{全家福照片}中可以得知她想要为家人报仇。'},
+      {tpl:'如果她认为死者就是当年的凶手，那么她也有可能杀害死者。', final:true}
+    ],
+    pieces:[
+      {id:'受害人是我的父母和弟弟', text:'受害人是我的父母和弟弟',
+       fillText:'受害人是赵筝的父母和弟弟', rot:'1.8deg'},
+      {id:'重要嫌疑人', text:'重要嫌疑人', rot:'-2deg'},
+      {id:'卢华辑的调查记录', text:'卢华辑的调查记录', photo:'picb1.jpg', rot:'-1.8deg'},
+      {id:'全家福照片', text:'全家福照片', photo:'pic23.jpg', rot:'2.4deg'}
+    ],
+    choices:[],
+    finalText:'十年前案件的受害人是赵筝的家人，从卢华辑的调查记录中得知她为了来这里做管家，拒绝了很多高薪工作。而死者是十年前案件的重要嫌疑人，所以赵筝来这里做管家是为了调查十年前的案件，并且她对死者抱有怀疑。并且从全家福照片中可以得知她想要为家人报仇。如果她认为死者就是当年的凶手，那么她也有可能杀害死者。',
+    confess:'我来这里工作的确是为了调查当年的案件，但我还没有调查出结果。在找出当年的真相之前，我是不会杀人的。'
+  }
+},
+
+dai:{
+  name:'戴纾', pic:'pic6.jpg', slow:false, pressurePerAction:34,
+  evidence:[
+    { id:'dai-e1', label:'冯志远的警察证',
+      q:'我在储物间的置物架上找到了一张警察证，那是你平时放东西的地方吧，说说吧，怎么来的？',
+      a:'（眼神躲闪）这是我打扫别墅的时候捡到的，感觉是比较重要的东西，就放在储物间收起来了。',
+      dq:'没听说这个房子里有个叫冯志远的人啊，怎么可能捡到他的警察证，你好好说，别跟我编瞎话。',
+      da:'好吧，这是之前一个警察来这里调查时掉下的，我后来捡到没找到机会还回去，就收好了。',
+      dKey:'之前一个警察来这里调查' },
+    { id:'dai-e2', label:'锋利小刀',
+      q:'我在你的包里，找到了一把小刀，上班还揣把刀？说说吧，你拿刀要干什么？',
+      a:'那是我防身用的，我家附近最近治安不太好，我带把刀以防万一。' },
+    { id:'dai-e3', label:'今天18:10拍摄的死者电脑文件照片',
+      q:'我在你的手机里看到死者的行程表以及死者公司核心数据的照片，看来你很关注他，想找机会下手杀人？',
+      a:'我不知道啊，什么照片，肯定是有人要陷害我！！！',
+      dq:'别在这儿骗人了！我找到了一封威胁邮件，这是有人指使你做的？你从实招来。',
+      da:'对对！这是那人威胁我拍的，我也是迫不得已。我今天去书房打扫的时候，正好书房没人，就趁机把行程表拍下来了。' },
+    { id:'dai-e4', label:'威胁邮件和可疑录音',
+      q:'我在你的手机里找到了一段录音，你在花园里埋了什么？这段音频里的另一个声音，明显来自死者，他威胁过你，所以你要杀了他？',
+      a:'（眼神躲闪）我不知道这段音频，肯定是别人合成的。这封邮件的发件人是匿名的，我不知道是谁，那个人为什么要这么做。' }
+  ],
+  reasoning:{
+    lines:[
+      {tpl:'根据证词，戴纾手中的警察证是{之前一个来这里调查的警察}的。'},
+      {tpl:'警察证的主人是冯志远，从{冯志远的笔记}中可以得知他的确来别墅调查过十年前的案件，并在调查后失踪。'},
+      {tpl:'从{威胁邮件和可疑录音}中可以得出，她有非常致命的把柄握在死者和威胁者手中。'},
+      {tpl:'她一定和{冯志远的失踪}脱不开干系，而死者手中有她的致命把柄，她有动机杀死者灭口。', final:true}
+    ],
+    pieces:[
+      {id:'之前一个来这里调查的警察', text:'之前一个来这里调查的警察', rot:'-1.6deg'},
+      {id:'冯志远的笔记', text:'冯志远的笔记', photo:'pica1.jpg', rot:'2deg'},
+      {id:'威胁邮件和可疑录音', text:'威胁邮件和可疑录音', rot:'-2.2deg'}
+    ],
+    choices:[{id:'冯志远的失踪', options:['舒代华的死','楚子航的消失','冯志远的失踪']}],
+    finalText:'根据证词，戴纾手中的警察证是之前一个来这里调查的警察的。警察证的主人是冯志远，从冯志远的笔记中可以得知他的确来别墅调查过十年前的案件，并在调查后失踪。从威胁邮件和可疑录音中可以得出，她有非常致命的把柄握在死者和威胁者手中。她一定和冯志远的失踪脱不开干系，而死者手中有她的致命把柄，她有动机杀死者灭口。',
+    confess:'十年前，一个年轻警察来这里调查案子。我当时刚开始干保洁，在二楼擦窗台的时候，失手推落了一盆花，好巧不巧就砸到了在墙边发信息的年轻警察。我赶紧下楼查看，可是砸的位置太寸了，他已经没有呼吸了。我不敢让人知道，这边平时也没什么人路过，我就把尸体埋在别墅后面的花园里了。这么多年我一直昼夜难安，坦白这件事对我来说也是一种解脱吧。'
+  }
+},
+
+feng:{
+  name:'冯颖', pic:'pic7.jpg', slow:false, pressurePerAction:25,
+  evidence:[
+    { id:'feng-e1', label:'嫌疑人与冯志远多年前的合照',
+      q:'我在你的背包里找到了一张合影，是你和一个叫冯志远的小男孩在学校门口拍的，你们两个是什么关系？',
+      a:'冯志远是我儿子，这是好多年之前，他得三好学生的时候拍的照片，我一直留着，偶尔会拿出来看。',
+      aKey:'冯志远是我儿子' },
+    { id:'feng-e2', label:'S市警察局笔记本',
+      q:'我在厨房找到了一个封面是S市警察局的笔记本，里面是警方当时对于赵氏集团案件的调查记录，你怎么会有这些资料？你在追查这起案件吗？',
+      a:'我儿子在之前的行动中失踪了，这是他当时留下的东西，我留着当个念想，没很关注过里面的内容。' },
+    { id:'feng-e3', label:'收集死者行程及个人习惯',
+      q:'我在你的手机里找到了死者的行程表，还有他的个人习惯，你很关注死者，是在打算找机会下手吗？',
+      a:'什么？我怎么不知道？你说的难道是那封垃圾邮件，那是不知道什么人随便发到我邮箱里的，可能手机自动存下来了，我根本就没注意。',
+      dq:'我找到了这份你曾购买死者信息的调查记录，什么垃圾邮件？我可是头一次见这么贵的垃圾。现在可以说实话了吧。',
+      da:'好吧，我确实在调查，我怀疑舒代华是那起案件的主谋，但是我还没有得出结论，在得出结论之前我不可能下手杀害我正在调查的人。',
+      dKey:'怀疑舒代华是那起案件的主谋' },
+    { id:'feng-e4', label:'携带镇静类药品',
+      q:'在你那里我翻到了一瓶药片，这个药片有很强的镇定效果，你带着这种东西来上班干什么？',
+      a:'这是我平时用的药，都吃了好几年了，之前的用完了，这个的是上班路上顺便从药店买的。',
+      dq:'顺便从药店买的？你还吃了好几年？看清楚了，这种限制类药物，可不是随便就能买到的，撒谎也不打草稿。',
+      da:'这这这……其实是别人给我的，我只知道能让人睡觉，就放在包里了。' }
+  ],
+  reasoning:{
+    lines:[
+      {tpl:'冯志远是冯颖的{儿子}，在多年前失踪。'},
+      {tpl:'冯颖一直保留着{冯志远的调查笔记}，笔记中最后的信息是他要来这栋别墅调查10年前的案件。'},
+      {tpl:'冯颖正在调查一起旧案，并且{怀疑舒代华是那起案件的主谋}。'},
+      {tpl:'冯颖来这栋别墅工作，是为了查清{冯志远失踪的真相}。'},
+      {tpl:'她怀疑舒代华是冯志远当年调查案件的真凶，也极有可能认为舒代华怕事情败露对冯志远痛下杀手。所以她有可能是杀害死者的凶手。', final:true}
+    ],
+    pieces:[
+      {id:'儿子', text:'儿子', rot:'-1.4deg'},
+      {id:'怀疑舒代华是那起案件的主谋', text:'怀疑舒代华是那起案件的主谋', rot:'1.6deg'},
+      {id:'冯志远的调查笔记', text:'冯志远的调查笔记', photo:'pica1.jpg', rot:'-2.4deg'}
+    ],
+    choices:[{id:'冯志远失踪的真相', options:['冯志远失踪的真相','魔仙彩石的下落','赵氏集团谋杀案']}],
+    finalText:'冯志远是冯颖的儿子，在多年前失踪。冯颖一直保留着冯志远的调查笔记，笔记中最后的信息是他要来这栋别墅调查10年前的案件。冯颖正在调查一起旧案，并且怀疑舒代华是那起案件的主谋。冯颖来这栋别墅工作，是为了查清冯志远失踪的真相。她怀疑舒代华是冯志远当年调查案件的真凶，也极有可能认为舒代华怕事情败露对冯志远痛下杀手。所以她有可能是杀害死者的凶手。',
+    confess:'我的确是来调查志远失踪的真相的，不过我对舒代华只是怀疑，还没有坐实。我是不会在真正查明真相之前，就采取行动的。'
+  }
+},
+
+lu:{
+  name:'卢华辑', pic:'pic8.jpg', slow:true, pressurePerAction:1,
+  evidence:[
+    { id:'lu-e1', label:'有关信息泄露案件的剪报本',
+      q:'我在你的房间，看见了一个本子，里面收集了很多起信息泄露案的新闻，你收集这个是要做什么？',
+      a:'个人兴趣，天生就喜欢看新闻。',
+      dq:'我看可没这么简单，我在你的电脑里可看到不少有趣的东西，别用假话糊弄我。',
+      da:'反正你也知道了，我的工作就是收集各类信息，这个本子里记录的新闻，算是我的工作履历吧。',
+      dKey:'我的工作就是收集各类信息' },
+    { id:'lu-e2', label:'曾向戴纾寄送暴龙手机',
+      q:'我在你的手机上看到你曾给戴纾寄送过一部暴龙手机。后续我在她那里找到了这部手机，里面拍摄了很多关于死者的照片，你们打算合谋杀人？',
+      a:'我可没有，这是有一个买家下的单，舒代华不好接近，只能拜托能够接近他的人，偷拍他的行程之类的。' },
+    { id:'lu-e3', label:'调查死者身边人员',
+      q:'我在你的电脑里发现了一份包含了死者身边所有人的调查资料，你调查他们又是为了干什么？',
+      a:'做我们这一行的，最关键就是要准备周全。这只能说明我工作能力出色，尽职尽责。以后有需要可以找我啊。' },
+    { id:'lu-e4', label:'申请空壳公司，伪造项目合作书',
+      q:'我在你的电脑里看到了你们申请空壳公司，伪造合作书的全部计划，只是想套点情报的话，没必要搞这么复杂吧！',
+      a:'我就是这种凡事都要亲力亲为的人！所有事情假手他人不是我的性格，我必须得自己来这里确认验收一下情报的真实性！',
+      dq:'我看没那么简单吧？这次合作如果真的骗过去，你们的进账可比当情报贩子多多了吧。',
+      da:'好吧，我确实有顺手套一笔的打算，但是我可觉得不干杀人放火的事儿啊！' }
+  ],
+  reasoning:null,
+  osText:'完全不吃压力呀！不过他的确没什么杀害死者的理由，暂且不追究他的事了，目前最要紧的是找到杀害舒代华的凶手。'
+}
+};
+
+/* =========================================================
+   状态
+   ========================================================= */
+const state = {
+  cur:'shu',
+  selectedEvidence:null,
+  selectedBubble:null,
+  busy:false,
+  combo:0,
+  done:{}
+};
+Object.keys(DATA).forEach(id=>{
+  state.done[id] = {
+    keys:new Set(),
+    doubts:new Set(),
+    asked:new Set(),
+    osShown:false,
+    reasoningDone:false,
+    confessShown:false
+  };
+});
+
+/* =========================================================
+   DOM
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const charButtons       = $('#charButtons');
+const messagesContainer = $('#messagesContainer');
+const evidenceBar       = $('#evidenceBar');
+const pressureFill      = $('#pressureFill');
+const pressureNum       = $('#pressureNum');
+const btnInterrogate    = $('#btnInterrogate');
+const btnDoubt          = $('#btnDoubt');
+const btnReason         = $('#btnReason');
+const btnFinal          = $('#btnFinal');
+const charImage         = $('#charImage');
+const currentCharName   = $('#currentCharName');
+const comboEl           = $('#combo');
+const toastEl           = $('#toast');
+const modal             = $('#modal');
+const modalBody         = $('#modalBody');
+const modalTray         = $('#modalTray');
+const modalFinish       = $('#modalFinish');
+const ending            = $('#ending');
+
+/* =========================================================
+   工具
+   ========================================================= */
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+function scrollBottom(){ messagesContainer.scrollTop = messagesContainer.scrollHeight; }
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let toastTimer;
+function toast(msg, fail){
+  toastEl.textContent = msg;
+  toastEl.classList.toggle('fail', !!fail);
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('show'), 2000);
+}
+
+function typeInto(el, text, speed=26){
+  return new Promise(resolve=>{
+    let i = 0;
+    el.textContent = '';
+    function tick(){
+      if(i >= text.length){ resolve(); return; }
+      const ch = text[i++];
+      el.textContent += ch;
+      scrollBottom();
+      let d = speed;
+      if('。！？'.includes(ch)) d = speed * 6;
+      else if('，、；：'.includes(ch)) d = speed * 3.5;
+      else if('…'.includes(ch)) d = speed * 4;
+      setTimeout(tick, d);
+    }
+    tick();
+  });
+}
+
+async function addMsg(text, type, opt={}){
+  const row = document.createElement('div');
+  row.className = 'message-row ' + type;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  row.appendChild(bubble);
+  messagesContainer.appendChild(row);
+  scrollBottom();
+  await typeInto(bubble, text, opt.speed || 26);
+  const st = state.done[state.cur];
+  if(opt.key) makeKeyword(bubble, opt.key, st);
+  if(opt.evId) bubble.dataset.evId = opt.evId;
+  if(opt.role) bubble.dataset.role = opt.role;
+  if(opt.selectable){
+    bubble.classList.add('clickable');
+    bubble.addEventListener('click', ()=>selectBubble(bubble));
+  }
+  scrollBottom();
+  return bubble;
+}
+
+function makeKeyword(el, keyText, st){
+  const full = el.textContent;
+  const idx = full.indexOf(keyText);
+  if(idx === -1) return;
+  const before = full.slice(0, idx);
+  const after  = full.slice(idx + keyText.length);
+  el.textContent = '';
+  if(before) el.appendChild(document.createTextNode(before));
+  const span = document.createElement('span');
+  span.className = 'keyword';
+  span.textContent = keyText;
+  if(st.keys.has(keyText)){
+    span.classList.add('marked');
+  } else {
+    span.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      if(span.classList.contains('marked')) return;
+      span.classList.add('marked');
+      st.keys.add(keyText);
+      refreshPressure();
+      toast('关键信息已收录');
+    });
+  }
+  el.appendChild(span);
+  if(after) el.appendChild(document.createTextNode(after));
+}
+
+function selectBubble(bubble){
+  if(bubble.dataset.role !== 'answer') return;
+  if(state.selectedBubble === bubble){
+    bubble.classList.remove('selected');
+    state.selectedBubble = null;
+    return;
+  }
+  if(state.selectedBubble) state.selectedBubble.classList.remove('selected');
+  state.selectedBubble = bubble;
+  bubble.classList.add('selected');
+}
+
+/* =========================================================
+   顶部标签
+   ========================================================= */
+function buildTabs(){
+  charButtons.innerHTML = '';
+  Object.keys(DATA).forEach(id=>{
+    const s = DATA[id];
+    const b = document.createElement('button');
+    b.className = 'char-btn'
+      + (id === state.cur ? ' active' : '')
+      + (isNpcDone(id) ? ' solved' : '');
+    b.textContent = s.name;
+    b.dataset.id = id;
+    b.addEventListener('click', ()=>switchSuspect(id));
+    charButtons.appendChild(b);
+  });
+}
+
+/* =========================================================
+   切换嫌疑人
+   ========================================================= */
+async function switchSuspect(id){
+  if(state.busy || id === state.cur) return;
+  state.cur = id;
+  state.selectedEvidence = null;
+  state.selectedBubble = null;
+
+  const s = DATA[id];
+  document.querySelectorAll('.char-btn').forEach(t=>{
+    t.classList.toggle('active', t.dataset.id === id);
+  });
+
+  currentCharName.textContent = s.name;
+  charImage.src = s.pic;
+  charImage.alt = s.name;
+  charImage.style.display = 'block';
+  charImage.onerror = function(){ this.style.display = 'none'; };
+
+  renderHistory(id);
+  buildEvidenceBar();
+  refreshPressure();
+}
+
+/* 重建历史消息（含推理结论 & 供词） */
+function renderHistory(npcId){
+  const s = DATA[npcId];
+  const st = state.done[npcId];
+  messagesContainer.innerHTML = '';
+
+  const intro = document.createElement('div');
+  intro.className = 'message-row system';
+  intro.innerHTML = '<div class="bubble">—— 审讯对象：' + s.name + ' ——</div>';
+  messagesContainer.appendChild(intro);
+
+  // 证据问答
+  s.evidence.forEach(ev=>{
+    if(!st.asked.has(ev.id)) return;
+
+    addHistoryBubble(ev.q, 'player');
+
+    const bubble = addHistoryBubble(ev.a, 'npc', ev.id, 'answer');
+    if(ev.aKey) makeKeyword(bubble, ev.aKey, st);
+
+    if(ev.extra){
+      addHistoryBubble(ev.extra, 'player');
+    }
+
+    if(st.doubts.has(ev.id)){
+      addHistoryBubble(ev.dq, 'doubt');
+      const daBubble = addHistoryBubble(ev.da, 'npc');
+      if(ev.dKey) makeKeyword(daBubble, ev.dKey, st);
+    }
+  });
+
+  // 推理结论 + 供词（若已完成）
+  if(st.reasoningDone && s.reasoning){
+    addHistoryBubble(s.reasoning.finalText, 'player');
+    if(st.confessShown && s.reasoning.confess){
+      addHistoryBubble(s.reasoning.confess, 'npc');
+      addHistoryBubble('（' + s.name + '的审讯已结束）', 'system');
+    }
+  }
+
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function addHistoryBubble(text, type, evId, role){
+  const row = document.createElement('div');
+  row.className = 'message-row ' + type;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  if(evId) bubble.dataset.evId = evId;
+  if(role) bubble.dataset.role = role;
+  if(role === 'answer'){
+    bubble.classList.add('clickable');
+    bubble.addEventListener('click', ()=>selectBubble(bubble));
+  }
+  row.appendChild(bubble);
+  messagesContainer.appendChild(row);
+  return bubble;
+}
+
+/* =========================================================
+   证据栏
+   ========================================================= */
+function buildEvidenceBar(){
+  const s = DATA[state.cur];
+  evidenceBar.innerHTML = '';
+  s.evidence.forEach(ev=>{
+    const b = document.createElement('button');
+    b.className = 'ev-btn';
+    b.dataset.ev = ev.id;
+    b.textContent = ev.label;
+    if(state.done[state.cur].asked.has(ev.id)) b.classList.add('done');
+    if(state.selectedEvidence === ev.id) b.classList.add('selected');
+    b.addEventListener('click', ()=>{
+      if(state.busy) return;
+      state.selectedEvidence = (state.selectedEvidence === ev.id) ? null : ev.id;
+      buildEvidenceBar();
+    });
+    evidenceBar.appendChild(b);
+  });
+}
+
+/* =========================================================
+   压力值 / 动作统计
+   ========================================================= */
+function isNpcDone(npcId){
+  const s = DATA[npcId];
+  const st = state.done[npcId];
+  let total = 0;
+  s.evidence.forEach(ev=>{
+    if(ev.aKey) total++;
+    if(ev.dq)  total++;
+  });
+  if(total === 0) return true;
+  const done = st.keys.size + st.doubts.size;
+  return done >= total;
+}
+
+function refreshPressure(){
+  const s  = DATA[state.cur];
+  const st = state.done[state.cur];
+  const actions = st.keys.size + st.doubts.size;
+  const perAction = s.pressurePerAction || 20;
+  const pct = Math.min(100, actions * perAction);
+
+  pressureFill.style.width = pct + '%';
+  pressureNum.textContent = Math.round(pct) + '%';
+
+  if(!s.reasoning){
+    btnReason.style.display = 'none';
+  } else if(pct >= 100){
+    btnReason.style.display = '';
+  } else {
+    btnReason.style.display = 'none';
+  }
+
+  if(s.slow && isNpcDone(state.cur) && !st.osShown){
+    st.osShown = true;
+    setTimeout(()=>{ showOsPopup(s.osText); }, 800);
+  }
+
+  updateDoubtPulse();
+  buildTabs();
+  checkAllDone();
+}
+
+function updateDoubtPulse(){
+  const s = DATA[state.cur];
+  const st = state.done[state.cur];
+  let can = false;
+  s.evidence.forEach(ev=>{
+    if(ev.dq && st.asked.has(ev.id) && !st.doubts.has(ev.id)) can = true;
+  });
+  btnDoubt.classList.toggle('pulse', can);
+}
+
+/* =========================================================
+   审讯
+   ========================================================= */
+btnInterrogate.addEventListener('click', interrogate);
+async function interrogate(){
+  if(state.busy) return;
+  const s  = DATA[state.cur];
+  const st = state.done[state.cur];
+
+  if(!state.selectedEvidence){
+    toast('请先在下方选择一条证据', true);
+    return;
+  }
+  const ev = s.evidence.find(e=>e.id === state.selectedEvidence);
+  if(!ev) return;
+  if(st.asked.has(ev.id)){
+    toast('这条证据已经问过了', true);
+    return;
+  }
+
+  state.busy = true;
+  btnInterrogate.disabled = true;
+
+  st.asked.add(ev.id);
+
+  await addMsg(ev.q, 'player');
+  await sleep(250);
+  await addMsg(ev.a, 'npc', { key: ev.aKey, evId: ev.id, role: 'answer', selectable: true });
+
+  if(ev.extra){
+    await sleep(300);
+    await addMsg(ev.extra, 'player');
+  }
+
+  buildEvidenceBar();
+  state.selectedEvidence = null;
+
+  state.busy = false;
+  btnInterrogate.disabled = false;
+  refreshPressure();
+}
+
+/* =========================================================
+   质疑
+   ========================================================= */
+btnDoubt.addEventListener('click', doDoubt);
+async function doDoubt(){
+  if(state.busy) return;
+  const s  = DATA[state.cur];
+  const st = state.done[state.cur];
+
+  if(!state.selectedBubble){
+    toast('请先点击一条嫌疑人的回答', true);
+    return;
+  }
+
+  const evId = state.selectedBubble.dataset.evId;
+  const ev = s.evidence.find(e=>e.id === evId);
+
+  if(!ev || !ev.dq){
+    state.combo = 0;
+    state.selectedBubble.classList.remove('selected');
+    state.selectedBubble = null;
+    toast('质疑失败 · 这条回答没有破绽', true);
+    await addMsg('（你的质疑落空了，对方没有任何反应）', 'system');
+    return;
+  }
+  if(st.doubts.has(ev.id)){
+    toast('这条破绽已经质疑过了', true);
+    return;
+  }
+
+  state.busy = true;
+  btnDoubt.disabled = true;
+
+  st.doubts.add(ev.id);
+
+  state.combo++;
+  if(state.combo >= 3) showCombo(state.combo);
+
+  await addMsg(ev.dq, 'doubt');
+  await sleep(300);
+  await addMsg(ev.da, 'npc', { key: ev.dKey });
+
+  state.selectedBubble.classList.remove('selected');
+  state.selectedBubble = null;
+
+  state.busy = false;
+  btnDoubt.disabled = false;
+
+  buildEvidenceBar();
+  refreshPressure();
+}
+
+/* =========================================================
+   连击
+   ========================================================= */
+function showCombo(n){
+  comboEl.textContent = '连击 ×' + n;
+  comboEl.classList.remove('show');
+  void comboEl.offsetWidth;
+  comboEl.classList.add('show');
+  setTimeout(()=>comboEl.classList.remove('show'), 5000);
+}
+
+/* =========================================================
+   卢华辑 OS 弹窗
+   ========================================================= */
+function showOsPopup(text){
+  const box = document.createElement('div');
+  box.style.cssText = `
+    position:fixed;inset:0;z-index:950;display:flex;
+    align-items:center;justify-content:center;
+    background:rgba(0,0,0,.86);backdrop-filter:blur(8px);
+    opacity:0;transition:.5s;padding:16px;
+  `;
+  const inner = document.createElement('div');
+  inner.style.cssText = `
+    max-width:560px;width:100%;padding:36px 38px;
+    border-radius:26px;
+    border:1px solid #6b5a44;
+    background:#2c2416;color:#f0e6d2;
+    font-size:15.5px;line-height:2;
+    box-shadow:0 40px 90px rgba(0,0,0,.85);
+    transform:translateY(16px);transition:.6s cubic-bezier(.2,.9,.3,1);
+  `;
+  inner.innerHTML = `
+    <div style="font-size:12px;letter-spacing:6px;color:#e8c98a;margin-bottom:18px;font-weight:700">内 心 O S</div>
+    <div>${text}</div>
+  `;
+  box.appendChild(inner);
+  document.body.appendChild(box);
+  requestAnimationFrame(()=>{
+    box.style.opacity = '1';
+    inner.style.transform = 'translateY(0)';
+  });
+  const close = document.createElement('button');
+  close.textContent = '知道了';
+  close.style.cssText = `
+    display:block;margin:26px auto 0;padding:11px 34px;
+    border-radius:28px;border:1px solid #e8c98a;
+    background:rgba(232,201,138,.1);color:#e8c98a;
+    font-family:inherit;font-size:14px;letter-spacing:3px;cursor:pointer;
+  `;
+  close.addEventListener('click', ()=>{
+    box.style.opacity = '0';
+    setTimeout(()=>box.remove(), 500);
+  });
+  inner.appendChild(close);
+}
+
+/* =========================================================
+   推理时刻
+   ========================================================= */
+let selectedPiece = null;
+
+btnReason.addEventListener('click', openReasoning);
+function openReasoning(){
+  const s = DATA[state.cur];
+  if(!s.reasoning) return;
+  buildReasoning(s.reasoning);
+  modal.classList.add('show');
+}
+
+function buildReasoning(R){
+  modalBody.innerHTML = '';
+  modalTray.innerHTML = '<span class="tray-label">线索池</span>';
+  selectedPiece = null;
+
+  const lineEls = [];
+  R.lines.forEach((line, li)=>{
+    const p = document.createElement('div');
+    p.className = 'reason-line' + (line.final ? ' final' : '');
+    p.dataset.line = li;
+
+    const re = /\{([^}]+)\}/g;
+    let last = 0, m;
+    const parts = [];
+    while((m = re.exec(line.tpl)) !== null){
+      if(m.index > last) parts.push({t:'txt', v: line.tpl.slice(last, m.index)});
+      parts.push({t:'slot', id: m[1]});
+      last = m.index + m[0].length;
+    }
+    if(last < line.tpl.length) parts.push({t:'txt', v: line.tpl.slice(last)});
+
+    parts.forEach(part=>{
+      if(part.t === 'txt'){
+        p.appendChild(document.createTextNode(part.v));
+      } else {
+        const sp = document.createElement('span');
+        sp.className = 'slot';
+        sp.dataset.slot = part.id;
+        sp.addEventListener('click', ()=>onSlotClick(sp, lineEls));
+        p.appendChild(sp);
+      }
+    });
+
+    modalBody.appendChild(p);
+    lineEls.push(p);
+
+    const choiceIds = parts.filter(x=>x.t==='slot').map(x=>x.id)
+                           .filter(id => R.choices.some(c=>c.id===id));
+    if(choiceIds.length){
+      const row = document.createElement('div');
+      row.className = 'choice-row';
+      row.dataset.line = li;
+      const ch = R.choices.find(c=>c.id === choiceIds[0]);
+      ch.options.forEach(opt=>{
+        const b = document.createElement('button');
+        b.className = 'choice-btn';
+        b.textContent = opt;
+        b.addEventListener('click', ()=>{
+          if(opt === ch.id){
+            const slot = p.querySelector(`.slot[data-slot="${ch.id}"]`);
+            slot.textContent = ch.id;
+            slot.classList.add('filled');
+            row.classList.remove('show');
+            checkLineComplete(lineEls);
+          } else {
+            b.classList.add('bad');
+            setTimeout(()=>b.classList.remove('bad'), 500);
+          }
+        });
+        row.appendChild(b);
+      });
+      modalBody.appendChild(row);
+    }
+  });
+
+  // 打乱线索气泡
+  const shuffledPieces = shuffle(R.pieces);
+  shuffledPieces.forEach((pc, i)=>{
+    const el = document.createElement('div');
+    el.className = 'reason-piece' + (pc.photo ? ' photo' : '');
+    el.dataset.piece = pc.id;
+    // ★ 填入后显示的文本
+    if(pc.fillText) el.dataset.fillText = pc.fillText;
+    el.style.setProperty('--pd', (-i*0.9)+'s');
+    el.style.setProperty('--pr', pc.rot || '0deg');
+
+    if(pc.photo){
+      const wrap = document.createElement('div');
+      wrap.className = 'rp-photo';
+      const img = document.createElement('img');
+      img.src = pc.photo;
+      img.alt = '';
+      img.onerror = function(){
+        this.style.background = 'linear-gradient(150deg,#4a4433,#2a2418)';
+        this.removeAttribute('src');
+      };
+      const cap = document.createElement('div');
+      cap.className = 'rp-cap';
+      cap.textContent = pc.text;
+      wrap.appendChild(img);
+      wrap.appendChild(cap);
+      el.appendChild(wrap);
+    } else {
+      el.textContent = pc.text;
+    }
+
+    el.addEventListener('click', ()=>onPieceClick(el));
+    modalTray.appendChild(el);
+  });
+
+  updateLineVisibility(lineEls);
+  modalFinish.classList.remove('ready');
+  modalFinish.disabled = true;
+  modalFinish.textContent = '推理完成';
+  modal._lineEls = lineEls;
+}
+
+function onPieceClick(piece){
+  if(piece.classList.contains('used')) return;
+  if(selectedPiece === piece){
+    piece.classList.remove('selected');
+    selectedPiece = null;
+    return;
+  }
+  if(selectedPiece) selectedPiece.classList.remove('selected');
+  selectedPiece = piece;
+  piece.classList.add('selected');
+}
+
+function onSlotClick(slot, lineEls){
+  if(slot.classList.contains('filled')) return;
+  if(!selectedPiece){
+    toast('请先点击下方一个线索', true);
+    return;
+  }
+  const piece = selectedPiece;
+
+  if(slot.dataset.slot === piece.dataset.piece){
+    // ★ 填入时优先使用 fillText
+    const fillText = piece.dataset.fillText || piece.dataset.piece;
+    slot.textContent = fillText;
+    slot.classList.add('filled');
+
+    piece.classList.add('used');
+    piece.classList.remove('selected');
+    setTimeout(()=>{ piece.style.display = 'none'; }, 350);
+    selectedPiece = null;
+
+    const lineEl = slot.closest('.reason-line');
+    const idx = lineEl.dataset.line;
+    const row = modalBody.querySelector(`.choice-row[data-line="${idx}"]`);
+    if(row) row.classList.remove('show');
+
+    checkLineComplete(lineEls);
+  } else {
+    slot.classList.add('wrong');
+    setTimeout(()=>slot.classList.remove('wrong'), 700);
+    piece.classList.add('reject');
+    setTimeout(()=>piece.classList.remove('reject'), 450);
+  }
+}
+
+function updateLineVisibility(lineEls){
+  lineEls.forEach((p, i)=>{
+    const show = (i === 0) || isLineFilled(lineEls[i-1]);
+    if(show && !p.classList.contains('show')){
+      p.classList.add('show');
+      const row = modalBody.querySelector(`.choice-row[data-line="${i}"]`);
+      if(row){
+        const hasEmptyChoice = Array.from(p.querySelectorAll('.slot'))
+          .some(s => !s.classList.contains('filled'));
+        if(hasEmptyChoice) row.classList.add('show');
+      }
+    }
+  });
+}
+
+function isLineFilled(p){
+  const slots = p.querySelectorAll('.slot');
+  if(slots.length === 0) return true;
+  return Array.from(slots).every(s=>s.classList.contains('filled'));
+}
+
+function checkLineComplete(lineEls){
+  updateLineVisibility(lineEls);
+  const allFilled = lineEls.every(p=>isLineFilled(p));
+  if(allFilled){
+    modalFinish.disabled = false;
+    modalFinish.classList.add('ready');
+  }
+}
+
+/* =========================================================
+   关闭 / 完成
+   ========================================================= */
+$('#modalClose').addEventListener('click', ()=>{
+  modal.classList.remove('show');
+  selectedPiece = null;
+});
+
+modalFinish.addEventListener('click', async ()=>{
+  if(modalFinish.disabled) return;
+  const s  = DATA[state.cur];
+  const st = state.done[state.cur];
+  modal.classList.remove('show');
+  selectedPiece = null;
+
+  await sleep(400);
+  await addMsg(s.reasoning.finalText, 'player', { speed: 14 });
+  st.reasoningDone = true;
+
+  await sleep(400);
+  ending.classList.add('show');
+});
+
+$('#endingBack').addEventListener('click', async ()=>{
+  ending.classList.remove('show');
+  const s  = DATA[state.cur];
+  const st = state.done[state.cur];
+  await sleep(400);
+  if(s.reasoning && s.reasoning.confess && !st.confessShown){
+    await addMsg(s.reasoning.confess, 'npc', { speed: 18 });
+    st.confessShown = true;
+    await sleep(300);
+    await addMsg('（' + s.name + '的审讯已结束）', 'system');
+  }
+  buildTabs();
+  checkAllDone();
+});
+
+/* =========================================================
+   最终推理
+   ========================================================= */
+function checkAllDone(){
+  const all = Object.keys(DATA).every(id => isNpcDone(id));
+  btnFinal.style.display = all ? 'inline-block' : 'none';
+}
+
+btnFinal.addEventListener('click', ()=>{
+  window.location.href = 'page5.html';
+});
+
+/* =========================================================
+   开场弹窗
+   ========================================================= */
+$('#closeModalBtn').addEventListener('click', ()=>{
+  $('#introModal').style.display = 'none';
+});
+
+/* =========================================================
+   初始化
+   ========================================================= */
+async function init(){
+  buildTabs();
+  const firstId = 'shu';
+  state.cur = firstId;
+  const s = DATA[firstId];
+  currentCharName.textContent = s.name;
+  charImage.src = s.pic;
+  charImage.alt = s.name;
+  charImage.onerror = function(){ this.style.display = 'none'; };
+  document.querySelectorAll('.char-btn').forEach(t=>{
+    t.classList.toggle('active', t.dataset.id === firstId);
+  });
+
+  renderHistory(firstId);
+  buildEvidenceBar();
+  refreshPressure();
+}
+init();
+</script>
+</body>
+</html>

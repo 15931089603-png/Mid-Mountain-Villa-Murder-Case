@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>第3页 - 搜证大厅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #scene-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            background-image: url('pic9.jpg');
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        #button-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: top left;
+        }
+
+        .hotspot {
+            position: absolute;
+            z-index: 10;
+            width: 0;
+            height: 0;
+        }
+
+        .dot {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            background: #8b5a2b;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(139, 90, 43, 0.8);
+            z-index: 2;
+        }
+
+        .line {
+            position: absolute;
+            left: 9px;
+            top: 9px;
+            width: 0;
+            height: 100px;
+            border-left: 4px dashed #c49a6c;
+            transform-origin: top left;
+            z-index: 1;
+        }
+
+        .room-btn {
+            position: absolute;
+            background: rgba(210, 180, 140, 0.9);
+            border: 3px solid #8b5a2b;
+            box-shadow: 0 0 15px rgba(139, 90, 43, 0.7);
+            padding: 18px 36px;
+            border-radius: 12px;
+            color: #2e2416;
+            font-size: 27px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            transition: transform 0.15s, box-shadow 0.15s;
+            cursor: pointer;
+        }
+        .room-btn:active {
+            transform: translate(-50%, -50%) scale(0.95);
+            box-shadow: 0 0 20px rgba(139, 90, 43, 0.9);
+        }
+
+        /* ===== 放大镜按钮（右下角） ===== */
+        #magnifier-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #c49a6c, #8b5a2b);
+            border: 3px solid #dbb88c;
+            box-shadow: 0 4px 24px rgba(139, 90, 43, 0.7), inset 0 2px 4px rgba(255, 215, 160, 0.3);
+            cursor: pointer;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 32px;
+            color: #f5ede3;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            animation: floatPulse 3s ease-in-out infinite;
+        }
+        #magnifier-btn:hover {
+            transform: scale(1.06);
+            box-shadow: 0 6px 32px rgba(139, 90, 43, 0.9);
+        }
+        #magnifier-btn:active {
+            transform: scale(0.92);
+        }
+        @keyframes floatPulse {
+            0%,
+            100% {
+                box-shadow: 0 4px 24px rgba(139, 90, 43, 0.7);
+            }
+            50% {
+                box-shadow: 0 6px 40px rgba(139, 90, 43, 1);
+            }
+        }
+
+        /* ===== 欢迎弹窗 ===== */
+        .welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: overlayFadeIn 0.4s ease forwards;
+        }
+        .welcome-overlay.active {
+            display: flex;
+        }
+        .welcome-overlay.fade-out {
+            animation: overlayFadeOut 0.4s ease forwards;
+        }
+        @keyframes overlayFadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        @keyframes overlayFadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        .welcome-modal {
+            background: #f5ede3;
+            background-image: radial-gradient(ellipse at 20% 50%, rgba(210, 180, 140, 0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(210, 180, 140, 0.15) 0%, transparent 60%);
+            border: 4px solid #8b5a2b;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 0 2px #c49a6c inset;
+            max-width: 600px;
+            width: 100%;
+            padding: 36px 40px 30px;
+            position: relative;
+            transform: scale(0.95);
+            animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .welcome-overlay.fade-out .welcome-modal {
+            animation: modalShrink 0.3s ease forwards;
+        }
+        @keyframes modalPop {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        @keyframes modalShrink {
+            from {
+                transform: scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+        }
+        .welcome-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #d4b896;
+        }
+        .welcome-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+        .welcome-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4a2f1a;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+        .welcome-body p {
+            font-size: 16px;
+            line-height: 1.9;
+            color: #3d2b1a;
+            margin-bottom: 16px;
+            padding-left: 6px;
+            position: relative;
+        }
+        .welcome-body p:last-child {
+            margin-bottom: 0;
+        }
+        .welcome-body p::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 6px;
+            width: 3px;
+            height: 24px;
+            background: #8b5a2b;
+            border-radius: 2px;
+            opacity: 0.5;
+        }
+        .welcome-footer {
+            display: flex;
+            justify-content: center;
+            padding-top: 10px;
+        }
+        #welcome-confirm {
+            background: #8b5a2b;
+            color: #fff;
+            border: 2px solid #c49a6c;
+            border-radius: 40px;
+            padding: 12px 48px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 16px rgba(139, 90, 43, 0.4);
+        }
+        #welcome-confirm:hover {
+            background: #a56a35;
+            box-shadow: 0 6px 24px rgba(139, 90, 43, 0.6);
+        }
+        #welcome-confirm:active {
+            transform: scale(0.95);
+        }
+
+        /* ===== 侦探助手弹窗（复古笔记本） ===== */
+        #assistant-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            animation: overlayFadeIn 0.35s ease forwards;
+        }
+        #assistant-overlay.active {
+            display: flex;
+        }
+        #assistant-overlay.fade-out {
+            animation: overlayFadeOut 0.35s ease forwards;
+        }
+
+        .notebook {
+            position: relative;
+            width: 100%;
+            max-width: 820px;
+            max-height: 92vh;
+            background: #3d2b1a;
+            background-image:
+                repeating-linear-gradient(45deg, rgba(60, 40, 20, 0.3) 0px, rgba(60, 40, 20, 0.3) 2px, transparent 2px, transparent 6px);
+            border-radius: 18px 8px 8px 18px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.9), 0 0 0 3px #5a3d24, 0 0 0 6px #7a5a3a;
+            padding: 8px 8px 8px 16px;
+            display: flex;
+            gap: 0;
+            animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            overflow: hidden;
+        }
+        #assistant-overlay.fade-out .notebook {
+            animation: modalShrink 0.3s ease forwards;
+        }
+
+        .notebook::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 10%;
+            bottom: 10%;
+            width: 2px;
+            background: repeating-linear-gradient(to bottom, #7a5a3a 0px, #7a5a3a 6px, transparent 6px, transparent 10px);
+            opacity: 0.6;
+            z-index: 5;
+            border-radius: 2px;
+        }
+        .notebook::after {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 10%;
+            bottom: 10%;
+            width: 2px;
+            background: repeating-linear-gradient(to bottom, #7a5a3a 0px, #7a5a3a 6px, transparent 6px, transparent 10px);
+            opacity: 0.4;
+            z-index: 5;
+            border-radius: 2px;
+        }
+
+        .notebook-inner {
+            flex: 1;
+            background: #f7f0e0;
+            background-image:
+                radial-gradient(ellipse at 30% 20%, rgba(200, 170, 130, 0.08) 0%, transparent 70%),
+                repeating-linear-gradient(transparent 0px, transparent 27px, rgba(180, 150, 110, 0.15) 27px, rgba(180, 150, 110, 0.15) 28px);
+            border-radius: 6px 0 0 6px;
+            padding: 24px 24px 20px 28px;
+            position: relative;
+            min-height: 400px;
+            max-height: 78vh;
+            overflow-y: auto;
+            box-shadow: inset 0 0 40px rgba(120, 80, 40, 0.08);
+        }
+        .notebook-inner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            border-radius: 6px 0 0 6px;
+            z-index: 0;
+        }
+
+        .notebook-inner>* {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 右侧标签列 */
+        .tab-column {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 6px;
+            padding: 20px 0 20px 6px;
+            flex-shrink: 0;
+            width: 86px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .tab-item {
+            padding: 8px 6px 8px 12px;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #f5ede3;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            text-align: right;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: none;
+            position: relative;
+            box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.2);
+            transform: translateX(4px);
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            white-space: nowrap;
+            font-family: "Georgia", "Times New Roman", serif;
+        }
+        .tab-item::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: inherit;
+            border-radius: 0 4px 4px 0;
+            opacity: 0.6;
+        }
+        .tab-item.active {
+            transform: translateX(-6px) scale(1.04);
+            box-shadow: -6px 2px 20px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 215, 160, 0.2);
+            z-index: 20;
+            border-color: rgba(255, 215, 160, 0.3);
+        }
+        .tab-item.active::after {
+            opacity: 1;
+            box-shadow: 0 0 12px rgba(255, 215, 160, 0.2);
+        }
+        .tab-item .tab-check {
+            font-size: 12px;
+            margin-left: 4px;
+            opacity: 0.6;
+        }
+        .tab-item.active .tab-check {
+            opacity: 1;
+        }
+
+        /* 内容区顶部 */
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #d4c0a8;
+            position: relative;
+        }
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #8b5a2b;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+            background: #d4c0a8;
+        }
+        .profile-avatar.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #8b5a2b;
+            background: #e8ddd0;
+        }
+        .profile-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .profile-name {
+            font-family: "Georgia", "Times New Roman", "PingFang SC", serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #2e1f0e;
+            letter-spacing: 2px;
+            line-height: 1.2;
+        }
+        .profile-room {
+            font-size: 15px;
+            color: #6a4f30;
+            font-weight: 400;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+        .profile-room .icon {
+            margin-right: 4px;
+        }
+
+        /* 证据区域 */
+        .evidence-section {
+            margin-top: 4px;
+        }
+        .evidence-section .section-label {
+            font-size: 13px;
+            color: #7a5a3a;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed #d4c0a8;
+            padding-bottom: 6px;
+        }
+        .evidence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .evidence-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: rgba(255, 248, 235, 0.5);
+            border-radius: 10px;
+            border: 1px solid #e8ddd0;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            color: #3d2b1a;
+            backdrop-filter: blur(2px);
+        }
+        .evidence-item .dot-indicator {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .evidence-item .evidence-text {
+            flex: 1;
+            line-height: 1.4;
+        }
+        .evidence-item .lock-icon {
+            font-size: 16px;
+            opacity: 0.5;
+            flex-shrink: 0;
+        }
+        .evidence-item .lock-icon.unlocked {
+            opacity: 0.2;
+            color: #4a7a3a;
+        }
+        .no-evidence-hint {
+            padding: 16px 10px;
+            text-align: center;
+            color: #8a7a6a;
+            font-style: italic;
+            font-size: 15px;
+            background: rgba(220, 210, 195, 0.2);
+            border-radius: 10px;
+            border: 1px dashed #d4c8b8;
+        }
+
+        /* 录入区 */
+        .entry-area {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 2px solid #d4c0a8;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+        .entry-area .input-wrap {
+            flex: 1;
+            min-width: 140px;
+            display: flex;
+            align-items: center;
+            background: rgba(255, 248, 235, 0.6);
+            border: 2px solid #c4b09a;
+            border-radius: 10px;
+            padding: 0 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .entry-area .input-wrap:focus-within {
+            border-color: #8b5a2b;
+            box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.15);
+        }
+        .entry-area .input-wrap .key-icon {
+            font-size: 18px;
+            margin-right: 8px;
+            opacity: 0.6;
+        }
+        .entry-area .input-wrap input {
+            border: none;
+            background: transparent;
+            padding: 12px 6px;
+            font-size: 16px;
+            font-family: "Courier New", monospace;
+            letter-spacing: 2px;
+            outline: none;
+            width: 100%;
+            color: #2e1f0e;
+        }
+        .entry-area .input-wrap input::placeholder {
+            color: #b0a090;
+            font-family: "PingFang SC", sans-serif;
+            letter-spacing: 0;
+            font-size: 14px;
+        }
+        .entry-btn {
+            background: #8b5a2b;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 4px 12px rgba(139, 90, 43, 0.3);
+            letter-spacing: 1px;
+            font-family: "PingFang SC", sans-serif;
+            white-space: nowrap;
+        }
+        .entry-btn:hover {
+            background: #a56a35;
+            box-shadow: 0 6px 20px rgba(139, 90, 43, 0.5);
+        }
+        .entry-btn:active {
+            transform: scale(0.95);
+        }
+        .entry-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .entry-feedback {
+            font-size: 14px;
+            color: #6a4f30;
+            min-height: 22px;
+            width: 100%;
+            padding-left: 4px;
+            font-style: italic;
+            transition: color 0.2s;
+        }
+        .entry-feedback.success {
+            color: #2a7a3a;
+        }
+        .entry-feedback.error {
+            color: #b04030;
+        }
+
+        /* 进入审讯按钮（弹窗底部） */
+        .interrogate-entry {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px solid #d4c0a8;
+            text-align: center;
+            display: none;
+        }
+        .interrogate-entry.show {
+            display: block;
+        }
+        .interrogate-entry .btn-interrogate {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            color: #fff;
+            border: none;
+            border-radius: 40px;
+            padding: 16px 48px;
+            font-size: 22px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 32px rgba(192, 57, 43, 0.5);
+            transition: transform 0.2s, box-shadow 0.3s;
+            letter-spacing: 3px;
+            font-family: "Georgia", "PingFang SC", serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .interrogate-entry .btn-interrogate:hover {
+            transform: scale(1.03);
+            box-shadow: 0 12px 48px rgba(192, 57, 43, 0.7);
+        }
+        .interrogate-entry .btn-interrogate:active {
+            transform: scale(0.95);
+        }
+        .interrogate-entry .btn-interrogate .icon {
+            font-size: 28px;
+        }
+
+        /* 关闭按钮 */
+        .notebook-close {
+            position: absolute;
+            top: 10px;
+            right: 14px;
+            background: rgba(60, 40, 20, 0.6);
+            border: none;
+            color: #f5ede3;
+            font-size: 22px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 30;
+            transition: background 0.2s, transform 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .notebook-close:hover {
+            background: rgba(60, 40, 20, 0.9);
+            transform: rotate(90deg);
+        }
+
+        /* ===== 移动端适配 ===== */
+        @media (max-width: 768px) {
+            #magnifier-btn {
+                width: 54px;
+                height: 54px;
+                font-size: 26px;
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .notebook {
+                padding: 6px 6px 6px 12px;
+                border-radius: 14px 6px 6px 14px;
+                max-height: 96vh;
+            }
+            .notebook-inner {
+                padding: 18px 16px 16px 20px;
+                max-height: 82vh;
+                border-radius: 4px 0 0 4px;
+            }
+            .tab-column {
+                width: 64px;
+                padding: 12px 0 12px 4px;
+                gap: 4px;
+            }
+            .tab-item {
+                font-size: 11px;
+                padding: 6px 4px 6px 8px;
+                min-height: 28px;
+                transform: translateX(2px);
+            }
+            .tab-item.active {
+                transform: translateX(-4px) scale(1.02);
+            }
+            .profile-section {
+                gap: 12px;
+                padding-bottom: 12px;
+                margin-bottom: 14px;
+            }
+            .profile-avatar {
+                width: 48px;
+                height: 48px;
+            }
+            .profile-name {
+                font-size: 22px;
+            }
+            .profile-room {
+                font-size: 13px;
+            }
+            .evidence-item {
+                padding: 8px 12px;
+                font-size: 13px;
+                gap: 10px;
+            }
+            .evidence-item .dot-indicator {
+                width: 12px;
+                height: 12px;
+            }
+            .entry-area {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .entry-area .input-wrap {
+                min-width: 100px;
+                padding: 0 10px;
+            }
+            .entry-area .input-wrap input {
+                padding: 10px 4px;
+                font-size: 14px;
+            }
+            .entry-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            .interrogate-entry .btn-interrogate {
+                padding: 14px 32px;
+                font-size: 18px;
+            }
+            .interrogate-entry .btn-interrogate .icon {
+                font-size: 22px;
+            }
+            .notebook-close {
+                width: 30px;
+                height: 30px;
+                font-size: 18px;
+                top: 6px;
+                right: 10px;
+            }
+            .welcome-modal {
+                padding: 24px 20px 22px;
+                border-width: 3px;
+                border-radius: 16px;
+            }
+            .welcome-header h2 {
+                font-size: 20px;
+            }
+            .welcome-icon {
+                font-size: 26px;
+            }
+            .welcome-body p {
+                font-size: 14px;
+                line-height: 1.8;
+            }
+            #welcome-confirm {
+                padding: 10px 36px;
+                font-size: 16px;
+                letter-spacing: 2px;
+            }
+        }
+
+        @media (max-width: 420px) {
+            #magnifier-btn {
+                width: 46px;
+                height: 46px;
+                font-size: 22px;
+                bottom: 14px;
+                right: 14px;
+            }
+            .notebook {
+                padding: 4px 4px 4px 8px;
+                border-radius: 10px 4px 4px 10px;
+            }
+            .notebook-inner {
+                padding: 14px 12px 14px 16px;
+                max-height: 84vh;
+                border-radius: 4px 0 0 4px;
+            }
+            .tab-column {
+                width: 48px;
+                padding: 8px 0 8px 2px;
+                gap: 3px;
+            }
+            .tab-item {
+                font-size: 9px;
+                padding: 4px 2px 4px 6px;
+                min-height: 22px;
+                transform: translateX(1px);
+                border-radius: 0 4px 4px 0;
+                letter-spacing: 0.5px;
+            }
+            .tab-item.active {
+                transform: translateX(-3px) scale(1.02);
+            }
+            .profile-section {
+                gap: 10px;
+                padding-bottom: 10px;
+                margin-bottom: 10px;
+            }
+            .profile-avatar {
+                width: 40px;
+                height: 40px;
+            }
+            .profile-name {
+                font-size: 18px;
+            }
+            .profile-room {
+                font-size: 11px;
+            }
+            .evidence-item {
+                padding: 6px 10px;
+                font-size: 12px;
+                gap: 8px;
+                border-radius: 6px;
+            }
+            .evidence-item .dot-indicator {
+                width: 10px;
+                height: 10px;
+            }
+            .entry-area .input-wrap {
+                min-width: 80px;
+                padding: 0 8px;
+                border-radius: 6px;
+            }
+            .entry-area .input-wrap input {
+                padding: 8px 2px;
+                font-size: 13px;
+            }
+            .entry-area .input-wrap .key-icon {
+                font-size: 14px;
+                margin-right: 4px;
+            }
+            .entry-btn {
+                padding: 8px 16px;
+                font-size: 12px;
+                border-radius: 6px;
+            }
+            .entry-feedback {
+                font-size: 12px;
+                min-height: 18px;
+            }
+            .interrogate-entry .btn-interrogate {
+                padding: 12px 24px;
+                font-size: 16px;
+                border-radius: 30px;
+            }
+            .interrogate-entry .btn-interrogate .icon {
+                font-size: 18px;
+            }
+            .notebook-close {
+                width: 26px;
+                height: 26px;
+                font-size: 15px;
+                top: 4px;
+                right: 6px;
+            }
+            .welcome-modal {
+                padding: 18px 14px 18px;
+                border-radius: 12px;
+            }
+            .welcome-header {
+                gap: 8px;
+                margin-bottom: 14px;
+                padding-bottom: 10px;
+            }
+            .welcome-header h2 {
+                font-size: 17px;
+            }
+            .welcome-icon {
+                font-size: 22px;
+            }
+            .welcome-body p {
+                font-size: 13px;
+                line-height: 1.7;
+            }
+            #welcome-confirm {
+                padding: 10px 28px;
+                font-size: 14px;
+            }
+        }
+
+        .notebook-inner::-webkit-scrollbar {
+            width: 4px;
+        }
+        .notebook-inner::-webkit-scrollbar-track {
+            background: rgba(180, 150, 110, 0.15);
+            border-radius: 4px;
+        }
+        .notebook-inner::-webkit-scrollbar-thumb {
+            background: #8b5a2b;
+            border-radius: 4px;
+        }
+        .notebook-inner::-webkit-scrollbar-thumb:hover {
+            background: #a56a35;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== 欢迎弹窗（操作提示） ===== -->
+    <div id="welcome-overlay" class="welcome-overlay">
+        <div class="welcome-modal">
+            <div class="welcome-header">
+                <span class="welcome-icon">📋</span>
+                <h2>操作提示</h2>
+            </div>
+            <div class="welcome-body">
+                <p>1.点击房间按键，在房间中搜证，有效证据会收录进证据栏，所有有效证据收集完毕，证据栏会显示"返回大厅"按键和侦探助手录入码</p>
+                <p>2.点击右下角按键，打开侦探助手页面，输入不同房间得到的侦探助手录入码，即可录入该房间的证据信息，成功录入所有房间证据信息，即可进入审讯环节</p>
+                <p>3.背包中的物品，点击选中后，再点击想要交互弹窗即可完成交互</p>
+            </div>
+            <div class="welcome-footer">
+                <button id="welcome-confirm">确认</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 主场景 ===== -->
+    <div id="scene-container">
+        <div id="button-layer"></div>
+    </div>
+
+    <!-- ===== 放大镜按钮（右下角） ===== -->
+    <button id="magnifier-btn" aria-label="侦探助手">🔍</button>
+
+    <!-- ===== 侦探助手弹窗 ===== -->
+    <div id="assistant-overlay">
+        <div class="notebook">
+            <button class="notebook-close" id="assistant-close" aria-label="关闭">✕</button>
+
+            <!-- 右侧标签列 -->
+            <div class="tab-column" id="tab-column"></div>
+
+            <!-- 内页 -->
+            <div class="notebook-inner" id="notebook-inner">
+                <div id="assistant-content">
+                    <!-- 由 JS 动态渲染 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            //  1. 数据（低饱和标签颜色）
+            // ============================================================
+            const suspectsData = [{
+                id: '舒代雄',
+                name: '舒代雄',
+                room: '舒代雄房间',
+                avatar: 'pic4.jpg',
+                code: 'bxfr3697',
+                color: '#7A6B5B', // 低饱和棕灰
+                evidence: [
+                    '死者公司核心数据',
+                    '涂黑一半的合照',
+                    '一个刻着"赵"的镇纸',
+                    '大体内容相同，核心数据差异大的两份合作方案'
+                ]
+            }, {
+                id: '赵筝',
+                name: '赵筝',
+                room: '管家房间',
+                avatar: 'pic5.jpg',
+                code: 'cbxd0855',
+                color: '#5B6B7A', // 低饱和灰蓝
+                evidence: [
+                    '赵氏集团案件资料',
+                    '一份案件报道剪报',
+                    '全家福照片',
+                    '一个刻着"赵"的镇纸'
+                ]
+            }, {
+                id: '戴纾',
+                name: '戴纾',
+                room: '储物间',
+                avatar: 'pic6.jpg',
+                code: 'hzkl7892',
+                color: '#6B7A5B', // 低饱和灰绿
+                evidence: [
+                    '威胁邮件和可疑录音',
+                    '今天18:10拍摄的死者电脑文件照片',
+                    '冯志远的警察证',
+                    '尸体发现地状况',
+                    '锋利小刀'
+                ]
+            }, {
+                id: '冯颖',
+                name: '冯颖',
+                room: '厨房',
+                avatar: 'pic7.jpg',
+                code: 'fszr6382',
+                color: '#6B5B7A', // 低饱和灰紫
+                evidence: [
+                    'S市警察局笔记本',
+                    '嫌疑人与冯志远多年前的合照',
+                    '收集死者行程及个人习惯',
+                    '携带镇静类药品'
+                ]
+            }, {
+                id: '卢华辑',
+                name: '卢华辑',
+                room: '客房',
+                avatar: 'pic8.jpg',
+                code: 'lopa1973',
+                color: '#7A6B5B', // 低饱和灰橙（接近棕）
+                evidence: [
+                    '有关信息泄露案件的剪报本',
+                    '曾向戴纾寄送暴龙手机',
+                    '调查死者身边人员',
+                    '申请空壳公司，伪造项目合作书，接近死者'
+                ]
+            }, {
+                id: '书房',
+                name: null,
+                room: '书房',
+                avatar: null,
+                code: 'artx4722',
+                color: '#5B5B4B', // 低饱和深灰
+                evidence: [
+                    '椅背顶部有被擦除的血迹',
+                    '书房有通往储物间的地道'
+                ]
+            }];
+
+            const STORAGE_KEY = 'assistantEvidenceStatus';
+            const WELCOME_FLAG_KEY = 'welcomeShownPage3'; // 用 localStorage 永久记忆
+
+            // ============================================================
+            //  2. 状态管理
+            // ============================================================
+            function getDefaultState() {
+                const state = {};
+                suspectsData.forEach(s => {
+                    state[s.id] = s.evidence.map(() => false);
+                });
+                return state;
+            }
+
+            function loadState() {
+                try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        let valid = true;
+                        suspectsData.forEach(s => {
+                            if (!Array.isArray(parsed[s.id]) || parsed[s.id].length !== s.evidence.length) {
+                                valid = false;
+                            }
+                        });
+                        if (valid) return parsed;
+                    }
+                } catch (_) { /* ignore */ }
+                return getDefaultState();
+            }
+
+            function saveState(state) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            }
+
+            function isAllUnlocked(state) {
+                for (const s of suspectsData) {
+                    const arr = state[s.id];
+                    if (!arr) return false;
+                    for (const v of arr) {
+                        if (!v) return false;
+                    }
+                }
+                return true;
+            }
+
+            // ============================================================
+            //  3. DOM 引用
+            // ============================================================
+            const container = document.getElementById('scene-container');
+            const buttonLayer = document.getElementById('button-layer');
+            const magnifierBtn = document.getElementById('magnifier-btn');
+            const assistantOverlay = document.getElementById('assistant-overlay');
+            const assistantClose = document.getElementById('assistant-close');
+            const tabColumn = document.getElementById('tab-column');
+            const assistantContent = document.getElementById('assistant-content');
+            const welcomeOverlay = document.getElementById('welcome-overlay');
+            const welcomeConfirm = document.getElementById('welcome-confirm');
+
+            let currentTabId = suspectsData[0].id;
+            let evidenceState = loadState();
+
+            // ============================================================
+            //  4. 欢迎弹窗（使用 localStorage 永久记忆）
+            // ============================================================
+            function initWelcome() {
+                const shown = localStorage.getItem(WELCOME_FLAG_KEY);
+                if (shown === 'true') {
+                    welcomeOverlay.style.display = 'none';
+                    return;
+                }
+                welcomeOverlay.style.display = 'flex';
+                welcomeOverlay.classList.add('active');
+                localStorage.setItem(WELCOME_FLAG_KEY, 'true');
+
+                welcomeConfirm.addEventListener('click', function() {
+                    welcomeOverlay.classList.remove('active');
+                    welcomeOverlay.classList.add('fade-out');
+                    setTimeout(function() {
+                        welcomeOverlay.style.display = 'none';
+                        welcomeOverlay.classList.remove('fade-out');
+                    }, 400);
+                });
+            }
+
+            // ============================================================
+            //  5. 地图按钮定位（原有逻辑不变）
+            // ============================================================
+            const IMG_WIDTH = 3000;
+            const IMG_HEIGHT = 1500;
+
+            const rooms = [
+                { name: "储物间", x: 684, y: 861, direction: "down", link: "roomc.html" },
+                { name: "厨房", x: 1652, y: 824, direction: "right", link: "roomd.html", btnAdjustX: -250, btnAdjustY: 0 },
+                { name: "书房", x: 130, y: 867, direction: "up-right", link: "study.html", btnAdjustX: 180, btnAdjustY: 0 },
+                { name: "客房", x: 2104, y: 374, direction: "down", link: "roome.html" },
+                { name: "舒代雄卧室", x: 1278, y: 374, direction: "down", link: "rooma.html" },
+                { name: "管家房间", x: 2814, y: 867, direction: "left-down", link: "roomb.html", btnAdjustX: -180,
+                    btnAdjustY: 0 }
+            ];
+
+            function getDirectionInfo(direction, lineLength) {
+                let angle = 0,
+                    btnOffsetX = 0,
+                    btnOffsetY = 0;
+                switch (direction) {
+                    case "down":
+                        angle = 0;
+                        btnOffsetX = 0;
+                        btnOffsetY = lineLength;
+                        break;
+                    case "right":
+                        angle = 90;
+                        btnOffsetX = lineLength;
+                        btnOffsetY = 0;
+                        break;
+                    case "up-right":
+                        angle = -45;
+                        btnOffsetX = lineLength * Math.sin(-Math.PI / 4);
+                        btnOffsetY = lineLength * Math.cos(-Math.PI / 4);
+                        break;
+                    case "left-down":
+                        angle = 135;
+                        btnOffsetX = lineLength * Math.sin(135 * Math.PI / 180);
+                        btnOffsetY = lineLength * Math.cos(135 * Math.PI / 180);
+                        break;
+                    default:
+                        angle = 0;
+                        btnOffsetX = 0;
+                        btnOffsetY = lineLength;
+                }
+                return { angle, btnOffsetX, btnOffsetY };
+            }
+
+            function positionButtons() {
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+                const scaleX = containerWidth / IMG_WIDTH;
+                const scaleY = containerHeight / IMG_HEIGHT;
+                const scale = Math.min(scaleX, scaleY);
+                const displayedWidth = IMG_WIDTH * scale;
+                const displayedHeight = IMG_HEIGHT * scale;
+                const offsetX = (containerWidth - displayedWidth) / 2;
+                const offsetY = (containerHeight - displayedHeight) / 2;
+
+                buttonLayer.style.width = displayedWidth + 'px';
+                buttonLayer.style.height = displayedHeight + 'px';
+                buttonLayer.style.left = offsetX + 'px';
+                buttonLayer.style.top = offsetY + 'px';
+                buttonLayer.innerHTML = '';
+
+                const baseLineLength = 100;
+                const lineLength = baseLineLength * scale;
+                const baseDotSize = 20;
+                const dotSize = baseDotSize * scale;
+
+                rooms.forEach(room => {
+                    const hotspot = document.createElement('div');
+                    hotspot.className = 'hotspot';
+                    hotspot.style.left = (room.x * scale) + 'px';
+                    hotspot.style.top = (room.y * scale) + 'px';
+
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    dot.style.width = dotSize + 'px';
+                    dot.style.height = dotSize + 'px';
+                    dot.style.boxShadow = `0 0 ${12 * scale}px rgba(139,90,43,0.8)`;
+                    hotspot.appendChild(dot);
+
+                    const line = document.createElement('div');
+                    line.className = 'line';
+                    line.style.height = lineLength + 'px';
+                    line.style.borderLeftWidth = (4 * scale) + 'px';
+                    line.style.left = (dotSize / 2 - 2 * scale) + 'px';
+                    line.style.top = (dotSize / 2) + 'px';
+                    const dirInfo = getDirectionInfo(room.direction, lineLength);
+                    line.style.transform = `rotate(${dirInfo.angle}deg)`;
+                    line.style.transformOrigin = 'top left';
+                    hotspot.appendChild(line);
+
+                    const btn = document.createElement('div');
+                    btn.className = 'room-btn';
+                    btn.textContent = room.name;
+                    const adjustX = (room.btnAdjustX || 0) * scale;
+                    const adjustY = (room.btnAdjustY || 0) * scale;
+                    btn.style.left = (dirInfo.btnOffsetX + adjustX) + 'px';
+                    btn.style.top = (dirInfo.btnOffsetY + adjustY) + 'px';
+                    btn.style.transform = 'translate(-50%, -50%)';
+                    btn.style.fontSize = (27 * scale) + 'px';
+                    btn.style.padding = `${18 * scale}px ${36 * scale}px`;
+                    btn.style.borderWidth = (3 * scale) + 'px';
+                    btn.style.borderRadius = (12 * scale) + 'px';
+                    btn.addEventListener('click', () => {
+                        window.location.href = room.link;
+                    });
+                    hotspot.appendChild(btn);
+                    buttonLayer.appendChild(hotspot);
+                });
+            }
+
+            // ============================================================
+            //  6. 侦探助手弹窗渲染
+            // ============================================================
+            function renderTabs() {
+                tabColumn.innerHTML = '';
+                suspectsData.forEach(s => {
+                    const tab = document.createElement('div');
+                    tab.className = 'tab-item' + (s.id === currentTabId ? ' active' : '');
+                    tab.style.background = s.color;
+                    const unlocked = evidenceState[s.id] ? evidenceState[s.id].every(v => v) : false;
+                    const label = s.name || s.room;
+                    tab.innerHTML = `${label} ${unlocked ? '✓' : ''}`;
+                    tab.dataset.id = s.id;
+                    tab.addEventListener('click', () => {
+                        currentTabId = s.id;
+                        renderTabs();
+                        renderContent();
+                    });
+                    tabColumn.appendChild(tab);
+                });
+            }
+
+            function renderContent() {
+                const s = suspectsData.find(d => d.id === currentTabId);
+                if (!s) return;
+
+                const stateArr = evidenceState[s.id] || s.evidence.map(() => false);
+                const allUnlocked = stateArr.every(v => v);
+
+                let html = '';
+
+                // Profile
+                html += `<div class="profile-section">`;
+                if (s.avatar) {
+                    html += `<img class="profile-avatar" src="${s.avatar}" alt="${s.name}">`;
+                } else {
+                    html += `<div class="profile-avatar placeholder">📖</div>`;
+                }
+                html += `<div class="profile-info">`;
+                html += `<div class="profile-name">${s.name || s.room}</div>`;
+                html += `<div class="profile-room"><span class="icon">🚪</span>${s.room}</div>`;
+                html += `</div></div>`;
+
+                // Evidence — 仅显示已解锁的，未解锁的不显示
+                html += `<div class="evidence-section">`;
+                html += `<div class="section-label">📜 证据列表</div>`;
+                html += `<div class="evidence-list">`;
+
+                const unlockedItems = s.evidence.filter((_, idx) => stateArr[idx]);
+                if (unlockedItems.length === 0) {
+                    html += `<div class="no-evidence-hint">🔒 录入码解锁后显示证据</div>`;
+                } else {
+                    unlockedItems.forEach((text, idx) => {
+                        // 找到原始索引用于颜色
+                        const originalIdx = s.evidence.indexOf(text);
+                        html += `<div class="evidence-item unlocked">`;
+                        html += `<span class="dot-indicator" style="background:${s.color};"></span>`;
+                        html += `<span class="evidence-text">${text}</span>`;
+                        html += `<span class="lock-icon unlocked">🔓</span>`;
+                        html += `</div>`;
+                    });
+                }
+                html += `</div></div>`;
+
+                // Entry area
+                html += `<div class="entry-area">`;
+                html += `<div class="input-wrap">`;
+                html += `<span class="key-icon">🔑</span>`;
+                html +=
+                    `<input type="text" id="code-input" placeholder="输入录入码..." autocomplete="off" ${allUnlocked ? 'disabled' : ''}>`;
+                html += `</div>`;
+                html +=
+                    `<button class="entry-btn" id="entry-btn" ${allUnlocked ? 'disabled' : ''}>${allUnlocked ? '已解锁' : '录入'}</button>`;
+                html += `<div class="entry-feedback" id="entry-feedback">${allUnlocked ? '✅ 所有证据已解锁' : '请输入在房间中获得的录入码'}</div>`;
+                html += `</div>`;
+
+                // Interrogate entry
+                const allDone = isAllUnlocked(evidenceState);
+                html += `<div class="interrogate-entry ${allDone ? 'show' : ''}" id="interrogate-entry">`;
+                html +=
+                    `<button class="btn-interrogate" id="btn-interrogate"><span class="icon">🔍</span> 进入审讯</button>`;
+                html += `</div>`;
+
+                assistantContent.innerHTML = html;
+
+                // 绑定事件
+                const inputEl = document.getElementById('code-input');
+                const entryBtn = document.getElementById('entry-btn');
+                const feedback = document.getElementById('entry-feedback');
+
+                if (inputEl && entryBtn && !allUnlocked) {
+                    const doEntry = function() {
+                        const code = inputEl.value.trim().toLowerCase();
+                        if (!code) {
+                            feedback.textContent = '⚠️ 请输入录入码';
+                            feedback.className = 'entry-feedback error';
+                            return;
+                        }
+                        if (code === s.code.toLowerCase()) {
+                            const arr = evidenceState[s.id];
+                            for (let i = 0; i < arr.length; i++) {
+                                arr[i] = true;
+                            }
+                            saveState(evidenceState);
+                            feedback.textContent = '✅ 录入成功！所有证据已解锁';
+                            feedback.className = 'entry-feedback success';
+                            inputEl.disabled = true;
+                            entryBtn.disabled = true;
+                            // 重新渲染
+                            renderTabs();
+                            renderContent();
+                            if (isAllUnlocked(evidenceState)) {
+                                const entry = document.getElementById('interrogate-entry');
+                                if (entry) entry.classList.add('show');
+                            }
+                        } else {
+                            feedback.textContent = '❌ 录入码错误，请重新输入';
+                            feedback.className = 'entry-feedback error';
+                            inputEl.value = '';
+                            inputEl.focus();
+                        }
+                    };
+
+                    entryBtn.addEventListener('click', doEntry);
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') doEntry();
+                    });
+                }
+
+                const btnInterrogate = document.getElementById('btn-interrogate');
+                if (btnInterrogate) {
+                    btnInterrogate.addEventListener('click', () => {
+                        window.location.href = 'page4.html';
+                    });
+                }
+            }
+
+            function refreshAssistant() {
+                renderTabs();
+                renderContent();
+            }
+
+            // ============================================================
+            //  7. 弹窗开关
+            // ============================================================
+            function openAssistant() {
+                assistantOverlay.style.display = 'flex';
+                assistantOverlay.classList.add('active');
+                assistantOverlay.classList.remove('fade-out');
+                evidenceState = loadState();
+                refreshAssistant();
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeAssistant() {
+                assistantOverlay.classList.remove('active');
+                assistantOverlay.classList.add('fade-out');
+                setTimeout(() => {
+                    assistantOverlay.style.display = 'none';
+                    assistantOverlay.classList.remove('fade-out');
+                    document.body.style.overflow = '';
+                }, 350);
+            }
+
+            magnifierBtn.addEventListener('click', openAssistant);
+            assistantClose.addEventListener('click', closeAssistant);
+            assistantOverlay.addEventListener('click', (e) => {
+                if (e.target === assistantOverlay) closeAssistant();
+            });
+
+            // ============================================================
+            //  8. 初始化
+            // ============================================================
+            function init() {
+                initWelcome();
+
+                positionButtons();
+                window.addEventListener('resize', positionButtons);
+
+                const defaultState = getDefaultState();
+                let needSave = false;
+                suspectsData.forEach(s => {
+                    if (!evidenceState[s.id] || evidenceState[s.id].length !== s.evidence.length) {
+                        evidenceState[s.id] = s.evidence.map(() => false);
+                        needSave = true;
+                    }
+                });
+                if (needSave) saveState(evidenceState);
+
+                renderTabs();
+            }
+
+            if (document.readyState === 'complete') {
+                init();
+            } else {
+                window.addEventListener('load', init);
+            }
+
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>第1页 - 序章</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: "Noto Serif SC", "SimSun", "STSong", serif;
+        }
+
+        /* 全屏背景容器 */
+        .background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.8s ease-in-out;
+            z-index: 0;
+        }
+
+        /* 半透明文字框：位于图片下三分之一，横向铺满 */
+        .text-box {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 33.333%;
+            /* 下三分之一 */
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 20px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+            z-index: 10;
+            font-size: clamp(16px, 4vw, 22px);
+            line-height: 1.8;
+            letter-spacing: 1px;
+        }
+
+        .narrative-text {
+            min-height: 3em;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        /* 左下角“点击继续”提示 */
+        .click-hint {
+            position: fixed;
+            bottom: 25px;
+            left: 30px;
+            color: rgba(220, 220, 220, 0.8);
+            font-size: 14px;
+            letter-spacing: 2px;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.4s;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .click-hint.show {
+            opacity: 1;
+            pointer-events: auto;
+            cursor: pointer;
+            animation: gentlePulse 1.8s infinite;
+        }
+
+        @keyframes gentlePulse {
+            0% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.7;
+            }
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 600px) {
+            .text-box {
+                padding: 15px 20px;
+            }
+            .click-hint {
+                left: 20px;
+                bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background" id="bg-image"></div>
+    <div class="text-box">
+        <div class="narrative-text" id="typewriter-text"></div>
+    </div>
+    <div class="click-hint" id="click-hint">点击继续</div>
+
+    <script>
+        (function() {
+            // --- 游戏数据配置 ---
+            const scenes = [{
+                image: "pic1.jpg",
+                text: "你是一名推理小说家，最近刚刚交稿，闲来无事，朋友正好邀请你去他家中小聚，你欣然接受。"
+            }, {
+                image: "pic2.jpg",
+                text: "朋友的家位于城郊的半山别墅区，你乘坐接驳车到达朋友家门口，管家热情的领你进入客房， 并告诉你晚宴将在19：00开始。"
+            }, {
+                image: "pic3.jpg",
+                text: "你在房间收拾休整，转眼就到了晚上七点，大家陆陆续续入座，晚宴的主人却迟迟没有出现。突然！传来一声尖叫！朋友竟死在了储物间的地下室里！"
+            }];
+
+            let currentSceneIndex = 0; // 当前场景索引
+            let isTyping = false; // 是否正在逐字打印
+            let typingInterval = null; // 打字定时器
+            let fullText = ""; // 当前完整文本
+            let currentCharIndex = 0; // 当前打印到的字符位置
+            const typeSpeed = 60; // 打字速度 (毫秒/字)
+
+            // DOM 元素
+            const bgDiv = document.getElementById('bg-image');
+            const typewriterDiv = document.getElementById('typewriter-text');
+            const clickHint = document.getElementById('click-hint');
+
+            // --- 工具函数 ---
+            function preloadImage(src) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = src;
+                });
+            }
+
+            // 停止当前打字效果
+            function stopTyping() {
+                if (typingInterval) {
+                    clearInterval(typingInterval);
+                    typingInterval = null;
+                }
+                isTyping = false;
+            }
+
+            // 立即显示完整文本
+            function showFullText() {
+                stopTyping();
+                typewriterDiv.textContent = fullText;
+                currentCharIndex = fullText.length;
+                isTyping = false;
+                // 显示点击提示
+                clickHint.classList.add('show');
+            }
+
+            // 开始逐字打印文本
+            function startTyping(text) {
+                stopTyping();
+                fullText = text;
+                currentCharIndex = 0;
+                typewriterDiv.textContent = '';
+                clickHint.classList.remove('show');
+                isTyping = true;
+
+                typingInterval = setInterval(() => {
+                    if (currentCharIndex < fullText.length) {
+                        typewriterDiv.textContent += fullText.charAt(currentCharIndex);
+                        currentCharIndex++;
+                    } else {
+                        // 打字完成
+                        clearInterval(typingInterval);
+                        typingInterval = null;
+                        isTyping = false;
+                        clickHint.classList.add('show');
+                    }
+                }, typeSpeed);
+            }
+
+            // 切换场景
+            async function loadScene(index) {
+                // 防止越界
+                if (index >= scenes.length) {
+                    // 所有场景结束，跳转到 page2
+                    window.location.href = "page2.html";
+                    return;
+                }
+
+                const scene = scenes[index];
+
+                // 1. 预加载图片并设置背景
+                try {
+                    await preloadImage(scene.image);
+                    bgDiv.style.backgroundImage = `url('${scene.image}')`;
+                } catch (e) {
+                    console.warn('图片加载失败:', scene.image);
+                    // 如果图片加载失败，仍然继续显示文字
+                }
+
+                // 2. 开始打字效果
+                startTyping(scene.text);
+
+                // 3. 绑定点击事件（在打字中点击可跳过打字，打字完成后点击进下一场景）
+                //    使用一次性事件监听更清晰，但这里利用全局状态判断
+            }
+
+            // --- 全局点击交互逻辑 ---
+            function handleUserClick(e) {
+                // 忽略在文字框内部的误触？其实整个页面都可以点击
+                if (isTyping) {
+                    // 打字进行中：立即显示全部文字
+                    showFullText();
+                } else {
+                    // 打字已完成：切换到下一个场景
+                    if (currentSceneIndex < scenes.length) {
+                        // 仍有场景，进入下一个
+                        currentSceneIndex++;
+                        loadScene(currentSceneIndex);
+                    }
+                    // 如果已经是最后一个场景并且点击了，loadScene内部会跳转
+                }
+            }
+
+            // 绑定点击事件到整个页面
+            document.body.addEventListener('click', handleUserClick);
+
+            // 也支持触摸事件（移动端）
+            document.body.addEventListener('touchend', function(e) {
+                // 防止双击缩放干扰
+                e.preventDefault();
+                handleUserClick(e);
+            });
+
+            // 防止移动端长按菜单
+            document.body.addEventListener('contextmenu', e => e.preventDefault());
+
+            // --- 初始化：加载第一个场景 ---
+            loadScene(0);
+
+            // 额外处理：如果用户点击了提示文字本身，也可以触发
+            clickHint.addEventListener('click', function(e) {
+                e.stopPropagation(); // 防止重复触发 body 的 click
+                if (!isTyping && currentSceneIndex < scenes.length) {
+                    currentSceneIndex++;
+                    loadScene(currentSceneIndex);
+                } else if (isTyping) {
+                    showFullText();
+                }
+            });
+
+            // 同样处理触摸
+            clickHint.addEventListener('touchend', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                if (!isTyping && currentSceneIndex < scenes.length) {
+                    currentSceneIndex++;
+                    loadScene(currentSceneIndex);
+                } else if (isTyping) {
+                    showFullText();
+                }
+            });
+
+        })();
+    </script>
+</body>
+</html>
